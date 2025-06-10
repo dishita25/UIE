@@ -81,9 +81,8 @@ def option():
     
     # Add these arguments to the parser:
     parser.add_argument('--EUVP', action='store_true', help='use EUVP dataset')
-    parser.add_argument('--data_train_EUVP', type=str, default='./datasets/euvp-dataset/Paired/underwater_dark', help='EUVP training data path')
-    parser.add_argument('--test_samples', type=str, default='./datasets/euvp-dataset/test_samples', help='EUVP test samples directory')
-    parser.add_argument('--test_samples_gt', type=str, default='./datasets/euvp-dataset/test_samples/GTr', help='EUVP test samples ground truth directory')
+    parser.add_argument('--data_train_EUVP', type=str, default='/kaggle/input/euvp-dataset/Paired/underwater_dark', help='EUVP training data path')
+    parser.add_argument('--test_samples', type=str, default='/kaggle/input/euvp-dataset/test_samples', help='EUVP test samples directory')
+    parser.add_argument('--test_samples_gt', type=str, default='/kaggle/input/euvp-dataset/test_samples/GTr', help='EUVP test samples ground truth directory')
 
-    
     return parser
