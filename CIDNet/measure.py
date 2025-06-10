@@ -143,10 +143,10 @@ if __name__ == '__main__':
         im_dir = './output/fivek/*.jpg'
         label_dir = './datasets/FiveK/test/target/'
     if mea.EUVP:
-        im_dir = './output/EUVP/*.png'
-        label_dir = './datasets/euvp-dataset/test_samples/GTr/'
+        im_dir = '/kaggle/working/output/EUVP/*.png'
+        label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'
 
-    avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
+    avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
     print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
     # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))

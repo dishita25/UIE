@@ -84,8 +84,8 @@ if __name__ == '__main__':
     if cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, or need to change CUDA_VISIBLE_DEVICES number")
     
-    if not os.path.exists('./output'):          
-            os.mkdir('./output')  
+    if not os.path.exists('/kaggle/working/output'):          
+            os.mkdir('/kaggle/working/output')  
     
     norm_size = True
     num_workers = 1
@@ -162,9 +162,9 @@ if __name__ == '__main__':
         weight_path = ep.unpaired_weights
         
     elif ep.EUVP:
-        eval_data = DataLoader(dataset=get_EUVP_test_set("./datasets/euvp-dataset/test_samples"), num_workers=num_workers, batch_size=1, shuffle=False)
-        output_folder = './output/EUVP/'
-        weight_path = './weights/EUVP.pth'
+        eval_data = DataLoader(dataset=get_EUVP_test_set("/kaggle/input/euvp-dataset/test_samples"), num_workers=num_workers, batch_size=1, shuffle=False)
+        output_folder = '/kaggle/working/output/EUVP'
+        weight_path = '/kaggle/working/weights'
         norm_size = False
         
     eval_net = CIDNet().cuda()
