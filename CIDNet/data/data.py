@@ -3,6 +3,8 @@ from data.LOLdataset import *
 from data.eval_sets import *
 from data.SICE_blur_SID import *
 from data.fivek import *
+from data.EUVPdataset import *
+
 
 def transform1(size=256):
     return Compose([
@@ -50,4 +52,12 @@ def get_fivek_training_set(data_dir,size):
     return FiveKDatasetFromFolder(data_dir, transform=transform1(size))
 
 def get_fivek_eval_set(data_dir):
+    return SICEDatasetFromFolderEval(data_dir, transform=transform2())
+
+
+# For EUVP
+def get_EUVP_training_set(data_dir, size):
+    return EUVPDatasetFromFolder(data_dir, transform=transform1(size))
+
+def get_EUVP_test_set(data_dir):
     return SICEDatasetFromFolderEval(data_dir, transform=transform2())

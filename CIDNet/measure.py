@@ -18,6 +18,7 @@ mea_parser.add_argument('--lol_v2_syn', action='store_true', help='measure lol_v
 mea_parser.add_argument('--SICE_grad', action='store_true', help='measure SICE_grad dataset')
 mea_parser.add_argument('--SICE_mix', action='store_true', help='measure SICE_mix dataset')
 mea_parser.add_argument('--fivek', action='store_true', help='measure fivek dataset')
+mea_parser.add_argument('--EUVP', action='store_true', help='measure EUVP dataset')
 mea = mea_parser.parse_args()
 
 def ssim(prediction, target):
@@ -141,6 +142,9 @@ if __name__ == '__main__':
     if mea.fivek:
         im_dir = './output/fivek/*.jpg'
         label_dir = './datasets/FiveK/test/target/'
+    if mea.EUVP:
+        im_dir = './output/EUVP/*.png'
+        label_dir = './datasets/euvp-dataset/test_samples/GTr/'
 
     avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))

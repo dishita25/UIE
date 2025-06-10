@@ -16,6 +16,7 @@ eval_parser.add_argument('--lol_v2_syn', action='store_true', help='output lol_v
 eval_parser.add_argument('--SICE_grad', action='store_true', help='output SICE_grad dataset')
 eval_parser.add_argument('--SICE_mix', action='store_true', help='output SICE_mix dataset')
 eval_parser.add_argument('--fivek', action='store_true', help='output FiveK dataset')
+eval_parser.add_argument('--EUVP', action='store_true', help='output EUVP dataset')
 
 eval_parser.add_argument('--best_GT_mean', action='store_true', help='output lol_v2_real dataset best_GT_mean')
 eval_parser.add_argument('--best_PSNR', action='store_true', help='output lol_v2_real dataset best_PSNR')
@@ -159,6 +160,12 @@ if __name__ == '__main__':
         alpha = ep.alpha
         norm_size = False
         weight_path = ep.unpaired_weights
+        
+    elif ep.EUVP:
+        eval_data = DataLoader(dataset=get_EUVP_test_set("./datasets/euvp-dataset/test_samples"), num_workers=num_workers, batch_size=1, shuffle=False)
+        output_folder = './output/EUVP/'
+        weight_path = './weights/EUVP.pth'
+        norm_size = False
         
     eval_net = CIDNet().cuda()
     eval(eval_net, eval_data, weight_path, output_folder,norm_size=norm_size,LOL=ep.lol,v2=ep.lol_v2_real,unpaired=ep.unpaired,alpha=alpha,gamma=ep.gamma)

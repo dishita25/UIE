@@ -101,7 +101,16 @@ def checkpoint(epoch):
     
 def load_datasets():
     print('===> Loading datasets')
-    if opt.lol_v1 or opt.lol_blur or opt.lolv2_real or opt.lolv2_syn or opt.SID or opt.SICE_mix or opt.SICE_grad:
+    if opt.lol_v1 or opt.lol_blur or opt.lolv2_real or opt.lolv2_syn or opt.SID or opt.SICE_mix or opt.SICE_grad or opt.EUVP:
+        if opt.EUVP:
+            train_set = get_EUVP_training_set(opt.data_train_EUVP, size=opt.cropSize)
+            training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
+            
+            # Use test_samples instead of validation dataset
+            test_set = get_EUVP_test_set(opt.test_samples)
+            testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
+    
+            
         if opt.lol_v1:
             train_set = get_lol_training_set(opt.data_train_lol_v1,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
@@ -221,39 +230,40 @@ if __name__ == '__main__':
         if epoch % opt.snapshots == 0:
             model_out_path = checkpoint(epoch) 
             norm_size = True
+            npy = False
 
             # LOL three subsets
             if opt.lol_v1:
                 output_folder = 'LOLv1/'
                 label_dir = opt.data_valgt_lol_v1
-            if opt.lolv2_real:
+            elif opt.lolv2_real:
                 output_folder = 'LOLv2_real/'
                 label_dir = opt.data_valgt_lolv2_real
-            if opt.lolv2_syn:
+            elif opt.lolv2_syn:
                 output_folder = 'LOLv2_syn/'
                 label_dir = opt.data_valgt_lolv2_syn
-            
-            # LOL-blur dataset with low_blur and high_sharp_scaled
-            if opt.lol_blur:
+            elif opt.lol_blur:
                 output_folder = 'LOL_blur/'
                 label_dir = opt.data_valgt_lol_blur
-                
-            if opt.SID:
+            elif opt.SID:
                 output_folder = 'SID/'
                 label_dir = opt.data_valgt_SID
                 npy = True
-            if opt.SICE_mix:
+            elif opt.SICE_mix:
                 output_folder = 'SICE_mix/'
                 label_dir = opt.data_valgt_SICE_mix
                 norm_size = False
-            if opt.SICE_grad:
+            elif opt.SICE_grad:
                 output_folder = 'SICE_grad/'
                 label_dir = opt.data_valgt_SICE_grad
                 norm_size = False
-                
-            if opt.fivek:
+            elif opt.fivek:
                 output_folder = 'fivek/'
                 label_dir = opt.data_valgt_fivek
+                norm_size = False
+            elif opt.EUVP:
+                output_folder = 'EUVP/'
+                label_dir = opt.test_samples_gt  # Ground truth for test samples
                 norm_size = False
 
             im_dir = opt.val_folder + output_folder + '*.png'
@@ -263,13 +273,13 @@ if __name__ == '__main__':
             avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, use_GT_mean=False)
             print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
             print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
-            print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
+            # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
             psnr.append(avg_psnr)
             ssim.append(avg_ssim)
-            lpips.append(avg_lpips)
+            # lpips.append(avg_lpips)
             print(psnr)
             print(ssim)
-            print(lpips)
+            # print(lpips)
         torch.cuda.empty_cache()
     
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
