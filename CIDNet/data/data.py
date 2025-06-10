@@ -54,7 +54,6 @@ def get_fivek_training_set(data_dir,size):
 def get_fivek_eval_set(data_dir):
     return SICEDatasetFromFolderEval(data_dir, transform=transform2())
 
-
 # For EUVP
 def get_EUVP_training_set(data_dir, size):
     return EUVPDatasetFromFolder(data_dir, transform=transform1(size))

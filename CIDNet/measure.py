@@ -74,10 +74,10 @@ def calculate_psnr(target, ref):
 def metrics(im_dir, label_dir, use_GT_mean):
     avg_psnr = 0
     avg_ssim = 0
-    avg_lpips = 0
+    # avg_lpips = 0
     n = 0
-    loss_fn = lpips.LPIPS(net='alex')
-    loss_fn.cuda()
+    # loss_fn = lpips.LPIPS(net='alex')
+    # loss_fn.cuda()
     for item in tqdm(sorted(glob.glob(im_dir))):
         n += 1
         
@@ -104,22 +104,22 @@ def metrics(im_dir, label_dir, use_GT_mean):
         
         score_psnr = calculate_psnr(im1, im2)
         score_ssim = calculate_ssim(im1, im2)
-        ex_p0 = lpips.im2tensor(im1).cuda()
-        ex_ref = lpips.im2tensor(im2).cuda()
+        # ex_p0 = lpips.im2tensor(im1).cuda()
+        # ex_ref = lpips.im2tensor(im2).cuda()
         
 
-        score_lpips = loss_fn.forward(ex_ref, ex_p0)
+        # score_lpips = loss_fn.forward(ex_ref, ex_p0)
     
         avg_psnr += score_psnr
         avg_ssim += score_ssim
-        avg_lpips += score_lpips.item()
-        torch.cuda.empty_cache()
+        # avg_lpips += score_lpips.item()
+        # torch.cuda.empty_cache()
     
 
     avg_psnr = avg_psnr / n
     avg_ssim = avg_ssim / n
-    avg_lpips = avg_lpips / n
-    return avg_psnr, avg_ssim, avg_lpips
+    # avg_lpips = avg_lpips / n
+    return avg_psnr, avg_ssim, 0.0
 
 
 if __name__ == '__main__':
@@ -149,4 +149,4 @@ if __name__ == '__main__':
     avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
     print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
-    print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
+    # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))

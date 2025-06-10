@@ -15,6 +15,8 @@ from loss.losses import *
 from data.scheduler import *
 from tqdm import tqdm
 from datetime import datetime
+from data.EUVPdataset import *
+
 
 opt = option().parse_args()
 
@@ -270,7 +272,7 @@ if __name__ == '__main__':
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
                  norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
             
-            avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, use_GT_mean=False)
+            avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
             print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
             print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
             # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
