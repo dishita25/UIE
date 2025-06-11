@@ -243,7 +243,12 @@ if __name__ == '__main__':
             npy = False
 
             # LOL three subsets
-            if opt.lol_v1:
+            if opt.EUVP:
+                output_folder = 'EUVP/'
+                label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'  # Ground truth for test samples
+                norm_size = False
+                os.makedirs(opt.val_folder + output_folder, exist_ok=True)
+            elif opt.lol_v1:
                 output_folder = 'LOLv1/'
                 label_dir = opt.data_valgt_lol_v1
             elif opt.lolv2_real:
@@ -271,11 +276,7 @@ if __name__ == '__main__':
                 output_folder = 'fivek/'
                 label_dir = opt.data_valgt_fivek
                 norm_size = False
-            elif opt.EUVP:
-                output_folder = 'EUVP/'
-                label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'  # Ground truth for test samples
-                norm_size = False
-                os.makedirs(opt.val_folder + output_folder, exist_ok=True)
+            
 
             im_dir = opt.val_folder + output_folder + '*.png'
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
@@ -318,6 +319,8 @@ if __name__ == '__main__':
             print(psnr)
             print(ssim)
             # print(lpips)
+            if opt.EUVP:
+                lpips.append(0.0)
         torch.cuda.empty_cache()
         
     # CREATE RESULTS DIRECTORY BEFORE WRITING
@@ -340,5 +343,5 @@ if __name__ == '__main__':
         f.write("| Epochs | PSNR | SSIM | LPIPS |\n")  
         f.write("|----------------------|----------------------|----------------------|----------------------|\n")  
         for i in range(len(psnr)):
-            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | {lpips[i]:.4f} |\n")  
+            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | N/A |\n")  
         
