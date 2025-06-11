@@ -247,7 +247,8 @@ if __name__ == '__main__':
                 output_folder = 'EUVP/'
                 label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'  # Ground truth for test samples
                 norm_size = False
-                os.makedirs(opt.val_folder + output_folder, exist_ok=True)
+                output_path = os.path.join(os.getcwd(), 'results', output_folder)
+                os.makedirs(output_path, exist_ok=True)
             elif opt.lol_v1:
                 output_folder = 'LOLv1/'
                 label_dir = opt.data_valgt_lol_v1
@@ -278,9 +279,24 @@ if __name__ == '__main__':
                 norm_size = False
             
 
-            im_dir = opt.val_folder + output_folder + '*.png'
-            eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
-                 norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
+            im_dir = os.path.join(os.getcwd(), 'results', output_folder, '*.png')
+            print(f"Looking for images in: {im_dir}")
+            
+            # Update the eval() call to use the correct output path
+            output_path = os.path.join(os.getcwd(), 'results', output_folder)
+            
+            # Before calling eval(), add:
+            print(f"Test dataset size: {len(testing_data_loader.dataset)}")
+            print(f"Output will be saved to: {output_path}")
+
+            eval(model, testing_data_loader, model_out_path, output_path,
+                norm_size=norm_size, LOL=False, v2=False, alpha=0.8)
+            
+            # After calling eval(), add:
+            import glob
+            generated_files = glob.glob(os.path.join(output_path, '*.png'))
+            print(f"Generated {len(generated_files)} output images")
+
             
             # ADD DEBUGGING AND SAFETY CHECK FOR EUVP
             if opt.EUVP:
@@ -343,5 +359,4 @@ if __name__ == '__main__':
         f.write("| Epochs | PSNR | SSIM | LPIPS |\n")  
         f.write("|----------------------|----------------------|----------------------|----------------------|\n")  
         for i in range(len(psnr)):
-            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | N/A |\n")  
-        
+            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | N/A |\n")         
