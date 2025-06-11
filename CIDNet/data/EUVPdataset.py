@@ -59,13 +59,19 @@ class EUVPTestDatasetFromFolder(data.Dataset):
         
         # For test_samples: use Inp and GTr folders
         self.input_folder = join(data_dir, 'Inp')  # Test input images
-        self.reference_folder = join(data_dir, 'GTr')  # Test ground truth images
+        # self.reference_folder = join(data_dir, 'GTr')  # Test ground truth images
         
         self.input_filenames = [join(self.input_folder, x) for x in listdir(self.input_folder) if is_image_file(x)]
-        self.reference_filenames = [join(self.reference_folder, x) for x in listdir(self.reference_folder) if is_image_file(x)]
+        # self.reference_filenames = [join(self.reference_folder, x) for x in listdir(self.reference_folder) if is_image_file(x)]
         
         self.input_filenames.sort()
-        self.reference_filenames.sort()
+        # self.reference_filenames.sort()
+        
+        # ADD DEBUGGING
+        print(f"EUVP Test Dataset: Found {len(self.input_filenames)} images in {self.input_folder}")
+        if len(self.input_filenames) > 0:
+            print(f"First few files: {self.input_filenames[:3]}")
+            
 
     def __getitem__(self, index):
         input_img = load_img(self.input_filenames[index])

@@ -59,4 +59,4 @@ def get_EUVP_training_set(data_dir, size):
     return EUVPDatasetFromFolder(data_dir, transform=transform1(size))
 
 def get_EUVP_test_set(data_dir):
-    return SICEDatasetFromFolderEval(data_dir, transform=transform2())
+    return EUVPTestDatasetFromFolder(data_dir, transform=transform2())
