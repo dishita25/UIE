@@ -145,6 +145,20 @@ if __name__ == '__main__':
     if mea.EUVP:
         im_dir = '/kaggle/working/output/EUVP/*.png'
         label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'
+        
+        # Add safety check for EUVP
+        import glob
+        import os
+        
+        output_files = glob.glob(im_dir)
+        if len(output_files) == 0:
+            print("No output images found in ./output/EUVP/")
+            print("Please run evaluation first: python eval.py --EUVP")
+            exit(1)
+        
+        if not os.path.exists(label_dir):
+            print(f"Ground truth directory not found: {label_dir}")
+            exit(1)
 
     avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))

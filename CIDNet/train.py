@@ -92,11 +92,11 @@ def train(epoch):
                 
 
 def checkpoint(epoch):
-    if not os.path.exists("./weights"):          
-        os.mkdir("./weights") 
-    if not os.path.exists("./weights/train"):          
-        os.mkdir("./weights/train")  
-    model_out_path = "./weights/train/epoch_{}.pth".format(epoch)
+    if not os.path.exists("/kaggle/working/weights"):          
+        os.mkdir("/kaggle/working/weights") 
+    if not os.path.exists("/kaggle/working/weights/train"):          
+        os.mkdir("/kaggle/working/weights/train")  
+    model_out_path = "/kaggle/working/weights/train/epoch_{}.pth".format(epoch)
     torch.save(model.state_dict(), model_out_path)
     print("Checkpoint saved to {}".format(model_out_path))
     return model_out_path
@@ -171,7 +171,7 @@ def build_model():
     print('===> Building model ')
     model = CIDNet().cuda()
     if opt.start_epoch > 0:
-        pth = f"./weights/train/epoch_{opt.start_epoch}.pth"
+        pth = f"/kaggle/working/weights/train/epoch_{opt.start_epoch}.pth"
         model.load_state_dict(torch.load(pth, map_location=lambda storage, loc: storage))
     return model
 
@@ -234,6 +234,11 @@ if __name__ == '__main__':
         
         if epoch % opt.snapshots == 0:
             model_out_path = checkpoint(epoch) 
+            
+            import os
+            if not os.path.exists(opt.val_folder):
+                os.makedirs(opt.val_folder, exist_ok=True)
+                
             norm_size = True
             npy = False
 
@@ -268,14 +273,42 @@ if __name__ == '__main__':
                 norm_size = False
             elif opt.EUVP:
                 output_folder = 'EUVP/'
-                label_dir = opt.test_samples_gt  # Ground truth for test samples
+                label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'  # Ground truth for test samples
                 norm_size = False
+                os.makedirs(opt.val_folder + output_folder, exist_ok=True)
 
             im_dir = opt.val_folder + output_folder + '*.png'
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
                  norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
             
-            avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
+            # ADD DEBUGGING AND SAFETY CHECK FOR EUVP
+            if opt.EUVP:
+                import glob
+                print(f"Looking for images in: {im_dir}")
+                print(f"Ground truth directory: {label_dir}")
+                
+                # Check if files exist
+                output_files = glob.glob(im_dir)
+                gt_files = glob.glob(label_dir + '*.png') + glob.glob(label_dir + '*.jpg')
+                
+                print(f"Found {len(output_files)} output images")
+                print(f"Found {len(gt_files)} ground truth images")
+                
+                if len(output_files) == 0:
+                    print("No output images found - skipping metrics calculation for this epoch")
+                    avg_psnr, avg_ssim = 0.0, 0.0
+                else:
+                    # Verify ground truth directory exists
+                    if not os.path.exists(label_dir):
+                        print(f"Ground truth directory does not exist: {label_dir}")
+                        avg_psnr, avg_ssim = 0.0, 0.0
+                    else:
+                        avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
+            else:
+                # For non-EUVP datasets, use original metrics calculation
+                avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
+            
+            # avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
             print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
             print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
             # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
@@ -286,9 +319,15 @@ if __name__ == '__main__':
             print(ssim)
             # print(lpips)
         torch.cuda.empty_cache()
+        
+    # CREATE RESULTS DIRECTORY BEFORE WRITING
+    if not os.path.exists("/kaggle/working/results"):
+        os.makedirs("/kaggle/working/results", exist_ok=True)
+    if not os.path.exists("/kaggle/working/results/training"):
+        os.makedirs("/kaggle/working/results/training", exist_ok=True)
     
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    with open(f"./results/training/metrics{now}.md", "w") as f:
+    with open(f"/kaggle/working/results/training/metrics{now}.md", "w") as f:
         f.write("dataset: "+ output_folder + "\n")  
         f.write(f"lr: {opt.lr}\n")  
         f.write(f"batch size: {opt.batchSize}\n")  

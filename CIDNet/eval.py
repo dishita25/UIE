@@ -164,7 +164,7 @@ if __name__ == '__main__':
     elif ep.EUVP:
         eval_data = DataLoader(dataset=get_EUVP_test_set("/kaggle/input/euvp-dataset/test_samples"), num_workers=num_workers, batch_size=1, shuffle=False)
         output_folder = '/kaggle/working/output/EUVP'
-        weight_path = '/kaggle/working/weights'
+        weight_path = '/kaggle/working/weights/train'
         norm_size = False
         
     eval_net = CIDNet().cuda()
