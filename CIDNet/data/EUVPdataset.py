@@ -46,6 +46,17 @@ class EUVPDatasetFromFolder(data.Dataset):
             torch.manual_seed(seed)
             reference_img = self.transform(reference_img)
         
+        # Apply padding to BOTH images with the same dimensions
+        import torch.nn.functional as F
+        factor = 8
+        h, w = input_img.shape[1], input_img.shape[2]
+        H, W = ((h + factor) // factor) * factor, ((w + factor) // factor) * factor
+        padh = H - h if h % factor != 0 else 0
+        padw = W - w if w % factor != 0 else 0
+        
+        input_img = F.pad(input_img.unsqueeze(0), (0,padw,0,padh), 'reflect').squeeze(0)
+        reference_img = F.pad(reference_img.unsqueeze(0), (0,padw,0,padh), 'reflect').squeeze(0)  # ADD THIS LINE
+        
         return input_img, reference_img, file1, file2
 
     def __len__(self):

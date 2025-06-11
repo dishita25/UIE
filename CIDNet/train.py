@@ -279,18 +279,18 @@ if __name__ == '__main__':
                 norm_size = False
             
 
-            im_dir = os.path.join(os.getcwd(), 'results', output_folder, '*.png')
+            im_dir = '/kaggle/working/output/' + output_folder + '/*.png'
             print(f"Looking for images in: {im_dir}")
             
             # Update the eval() call to use the correct output path
-            output_path = os.path.join(os.getcwd(), 'results', output_folder)
+            output_path = '/kaggle/working/output/' + output_folder
             
             # Before calling eval(), add:
             print(f"Test dataset size: {len(testing_data_loader.dataset)}")
             print(f"Output will be saved to: {output_path}")
 
-            eval(model, testing_data_loader, model_out_path, output_path,
-                norm_size=norm_size, LOL=False, v2=False, alpha=0.8)
+            eval(model, testing_data_loader, model_out_path, '/kaggle/working/output/' + output_folder,
+            norm_size=norm_size, LOL=False, v2=False, alpha=0.8)
             
             # After calling eval(), add:
             import glob

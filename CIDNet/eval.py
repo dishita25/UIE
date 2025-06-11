@@ -37,20 +37,21 @@ eval_parser.add_argument('--unpaired_weights', type=str, default='./weights/LOLv
 ep = eval_parser.parse_args()
 
 
-def eval(model, testing_data_loader, model_path, output_folder,norm_size=True,LOL=False,v2=False,unpaired=False,alpha=1.0,gamma=1.0):
+def eval(model, testing_data_loader, model_path, output_folder,norm_size=True,LOL=False,v2=False,unpaired=False,alpha=0.8,gamma=1.0):
     torch.set_grad_enabled(False)
     model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
     print('Pre-trained model is loaded.')
     model.eval()
     print('Evaluation:')
-    if LOL:
-        model.trans.gated = True
-    elif v2:
-        model.trans.gated2 = True
-        model.trans.alpha = alpha
-    elif unpaired:
-        model.trans.gated2 = True
-        model.trans.alpha = alpha
+    # if LOL:
+    #     model.trans.gated = True
+    # elif v2:
+    #     model.trans.gated2 = True
+    #     model.trans.alpha = alpha
+    # elif unpaired:
+    #     model.trans.gated2 = True
+    #     model.trans.alpha = alpha
+    
     for batch in tqdm(testing_data_loader):
         with torch.no_grad():
             if norm_size:
@@ -62,20 +63,20 @@ def eval(model, testing_data_loader, model_path, output_folder,norm_size=True,LO
             output = model(input**gamma) 
             
         if not os.path.exists(output_folder):          
-            os.mkdir(output_folder)  
+            os.makedirs(output_folder, exist_ok=True)  
             
         output = torch.clamp(output.cuda(),0,1).cuda()
         if not norm_size:
             output = output[:, :, :h, :w]
         
         output_img = transforms.ToPILImage()(output.squeeze(0))
-        output_img.save(output_folder + name[0])
+        output_img.save(output_folder + '/' + name[0])
         torch.cuda.empty_cache()
     print('===> End evaluation')
-    if LOL:
-        model.trans.gated = False
-    elif v2:
-        model.trans.gated2 = False
+    # if LOL:
+    #     model.trans.gated = False
+    # elif v2:
+    #     model.trans.gated2 = False
     torch.set_grad_enabled(True)
     
 if __name__ == '__main__':
@@ -164,7 +165,7 @@ if __name__ == '__main__':
     elif ep.EUVP:
         eval_data = DataLoader(dataset=get_EUVP_test_set("/kaggle/input/euvp-dataset/test_samples"), num_workers=num_workers, batch_size=1, shuffle=False)
         output_folder = '/kaggle/working/output/EUVP'
-        weight_path = '/kaggle/working/weights/train'
+        weight_path = '/kaggle/working/weights/train/epoch_10.pth'
         norm_size = False
         
     eval_net = CIDNet().cuda()
