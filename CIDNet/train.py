@@ -272,6 +272,17 @@ if __name__ == '__main__':
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
                  norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
             
+            # To check what file format the evaluation is actually saving
+            import os
+            print(f"Checking output directory: {opt.val_folder+output_folder}")
+            if os.path.exists(opt.val_folder+output_folder):
+                files = os.listdir(opt.val_folder+output_folder)
+                print(f"Files found: {files}")
+                print(f"File extensions: {[f.split('.')[-1] for f in files if '.' in f]}")
+            else:
+                print("Output directory doesn't exist!")
+
+            
             avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, use_GT_mean=False)
             print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
             print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))

@@ -79,7 +79,13 @@ def metrics(im_dir, label_dir, use_GT_mean):
     n = 0
     loss_fn = lpips.LPIPS(net='alex')
     loss_fn.cuda()
-    for item in tqdm(sorted(glob.glob(im_dir))):
+    
+    files = sorted(glob.glob(im_dir))
+    if len(files) == 0:
+        print(f"Warning: No files found matching pattern: {im_dir}")
+        return 0.0, 0.0, 0.0  # Return default values instead of crashing
+    
+    for item in tqdm(files):
         n += 1
         
         im1 = Image.open(item).convert('RGB') 
@@ -116,6 +122,9 @@ def metrics(im_dir, label_dir, use_GT_mean):
         avg_lpips += score_lpips.item()
         torch.cuda.empty_cache()
     
+    if n == 0:  # Additional safety check
+        print("Warning: No files were processed")
+        return 0.0, 0.0, 0.0
 
     avg_psnr = avg_psnr / n
     avg_ssim = avg_ssim / n
@@ -146,7 +155,7 @@ if __name__ == '__main__':
     # For my EUVP
     if mea.EUVP:
         im_dir = './output/EUVP/*.png'
-        label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr'
+        label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'
 
     avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))

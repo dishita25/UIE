@@ -54,7 +54,7 @@ def option():
     parser.add_argument('--data_valgt_SICE_grad'    , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_fivek'        , type=str, default='./datasets/FiveK/test/target/')
     # For my EUVP
-    parser.add_argument('--data_valgt_EUVP'        , type=str, default='/kaggle/input/euvp-dataset/test_samples/GTr')
+    parser.add_argument('--data_valgt_EUVP'        , type=str, default='/kaggle/input/euvp-dataset/test_samples/GTr/')
 
     parser.add_argument('--val_folder', default='./results/', help='Location to save validation datasets')
 
