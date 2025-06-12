@@ -266,7 +266,7 @@ if __name__ == '__main__':
             if opt.EUVP:
                 output_folder = 'EUVP/'
                 label_dir = opt.data_valgt_EUVP
-                norm_size = False
+                norm_size = True
             
             im_dir = opt.val_folder + output_folder + '*.png'
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
