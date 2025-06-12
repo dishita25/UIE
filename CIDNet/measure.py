@@ -154,7 +154,7 @@ if __name__ == '__main__':
         label_dir = './datasets/FiveK/test/target/'
     # For my EUVP
     if mea.EUVP:
-        im_dir = './output/EUVP/*.png'
+        im_dir = './output/EUVP/*.jpg'
         label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'
 
     avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
