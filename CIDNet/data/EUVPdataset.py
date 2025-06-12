@@ -41,5 +41,5 @@ class EUVPDatasetFromFolder(data.Dataset):
 
     def __len__(self):
         # Return actual dataset size
-        folder = self.data_dir + '/low'
+        folder = self.data_dir + '/trainA'
         return len([x for x in listdir(folder) if is_image_file(x)])
