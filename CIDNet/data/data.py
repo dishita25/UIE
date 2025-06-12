@@ -5,7 +5,6 @@ from data.SICE_blur_SID import *
 from data.fivek import *
 from data.EUVPdataset import *
 
-
 def transform1(size=256):
     return Compose([
         RandomCrop((size, size)),
@@ -18,6 +17,9 @@ def transform2():
     return Compose([ToTensor()])
 
 
+# For EUVP
+def get_EUVP_training_set(data_dir, size):
+    return EUVPDatasetFromFolder(data_dir, transform=transform1(size))
 
 def get_lol_training_set(data_dir,size):
     return LOLDatasetFromFolder(data_dir, transform=transform1(size))
@@ -53,10 +55,3 @@ def get_fivek_training_set(data_dir,size):
 
 def get_fivek_eval_set(data_dir):
     return SICEDatasetFromFolderEval(data_dir, transform=transform2())
-
-# For EUVP
-def get_EUVP_training_set(data_dir, size):
-    return EUVPDatasetFromFolder(data_dir, transform=transform1(size))
-
-def get_EUVP_test_set(data_dir):
-    return EUVPTestDatasetFromFolder(data_dir, transform=transform2())

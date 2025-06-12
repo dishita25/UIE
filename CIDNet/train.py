@@ -15,8 +15,6 @@ from loss.losses import *
 from data.scheduler import *
 from tqdm import tqdm
 from datetime import datetime
-from data.EUVPdataset import *
-
 
 opt = option().parse_args()
 
@@ -92,86 +90,81 @@ def train(epoch):
                 
 
 def checkpoint(epoch):
-    if not os.path.exists("/kaggle/working/weights"):          
-        os.mkdir("/kaggle/working/weights") 
-    if not os.path.exists("/kaggle/working/weights/train"):          
-        os.mkdir("/kaggle/working/weights/train")  
-    model_out_path = "/kaggle/working/weights/train/epoch_{}.pth".format(epoch)
+    if not os.path.exists("./weights"):          
+        os.mkdir("./weights") 
+    if not os.path.exists("./weights/train"):          
+        os.mkdir("./weights/train")  
+    model_out_path = "./weights/train/epoch_{}.pth".format(epoch)
     torch.save(model.state_dict(), model_out_path)
     print("Checkpoint saved to {}".format(model_out_path))
     return model_out_path
     
 def load_datasets():
     print('===> Loading datasets')
-    
-    if opt.EUVP:
-        # EUVP dataset loading - should be first and separate
-        train_set = get_EUVP_training_set(opt.data_train_EUVP, size=opt.cropSize)
-        training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
-        
-        # Use test_samples instead of validation dataset
-        test_set = get_EUVP_test_set(opt.test_samples)
-        testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
-        
-    elif opt.lol_v1 or opt.lol_blur or opt.lolv2_real or opt.lolv2_syn or opt.SID or opt.SICE_mix or opt.SICE_grad:
-        
+    if opt.lol_v1 or opt.lol_blur or opt.lolv2_real or opt.lolv2_syn or opt.SID or opt.SICE_mix or opt.SICE_grad:
         if opt.lol_v1:
             train_set = get_lol_training_set(opt.data_train_lol_v1,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_eval_set(opt.data_val_lol_v1)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
             
-        elif opt.lol_blur:
+        if opt.lol_blur:
             train_set = get_training_set_blur(opt.data_train_lol_blur,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_eval_set(opt.data_val_lol_blur)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
 
-        elif opt.lolv2_real:
+        if opt.lolv2_real:
             train_set = get_lol_v2_training_set(opt.data_train_lolv2_real,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_eval_set(opt.data_val_lolv2_real)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
             
-        elif opt.lolv2_syn:
+        if opt.lolv2_syn:
             train_set = get_lol_v2_syn_training_set(opt.data_train_lolv2_syn,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_eval_set(opt.data_val_lolv2_syn)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
         
-        elif opt.SID:
+        if opt.SID:
             train_set = get_SID_training_set(opt.data_train_SID,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_eval_set(opt.data_val_SID)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
             
-        elif opt.SICE_mix:
+        if opt.SICE_mix:
             train_set = get_SICE_training_set(opt.data_train_SICE,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_SICE_eval_set(opt.data_val_SICE_mix)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
             
-        elif opt.SICE_grad:
+        if opt.SICE_grad:
             train_set = get_SICE_training_set(opt.data_train_SICE,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_SICE_eval_set(opt.data_val_SICE_grad)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
             
-        elif opt.fivek:
+        if opt.fivek:
             train_set = get_fivek_training_set(opt.data_train_SICE,size=opt.cropSize)
             training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
             test_set = get_fivek_eval_set(opt.data_val_SICE_grad)
             testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
+    
+    elif opt.EUVP:
+        train_set = get_EUVP_training_set(opt.data_train_EUVP, size = opt.cropSize)
+        training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=opt.shuffle)
+        test_set = get_eval_set(opt.data_val_EUVP)
+        testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=1, shuffle=False)
+    
     else:
         raise Exception("should choose a dataset")
-    
     return training_data_loader, testing_data_loader
 
 def build_model():
     print('===> Building model ')
     model = CIDNet().cuda()
     if opt.start_epoch > 0:
-        pth = f"/kaggle/working/weights/train/epoch_{opt.start_epoch}.pth"
+        pth = f"./weights/train/epoch_{opt.start_epoch}.pth"
         model.load_state_dict(torch.load(pth, map_location=lambda storage, loc: storage))
     return model
 
@@ -234,119 +227,65 @@ if __name__ == '__main__':
         
         if epoch % opt.snapshots == 0:
             model_out_path = checkpoint(epoch) 
-            
-            import os
-            if not os.path.exists(opt.val_folder):
-                os.makedirs(opt.val_folder, exist_ok=True)
-                
             norm_size = True
-            npy = False
 
             # LOL three subsets
-            if opt.EUVP:
-                output_folder = 'EUVP/'
-                label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'  # Ground truth for test samples
-                norm_size = False
-                output_path = os.path.join(os.getcwd(), 'results', output_folder)
-                os.makedirs(output_path, exist_ok=True)
-            elif opt.lol_v1:
+            if opt.lol_v1:
                 output_folder = 'LOLv1/'
                 label_dir = opt.data_valgt_lol_v1
-            elif opt.lolv2_real:
+            if opt.lolv2_real:
                 output_folder = 'LOLv2_real/'
                 label_dir = opt.data_valgt_lolv2_real
-            elif opt.lolv2_syn:
+            if opt.lolv2_syn:
                 output_folder = 'LOLv2_syn/'
                 label_dir = opt.data_valgt_lolv2_syn
-            elif opt.lol_blur:
+            
+            # LOL-blur dataset with low_blur and high_sharp_scaled
+            if opt.lol_blur:
                 output_folder = 'LOL_blur/'
                 label_dir = opt.data_valgt_lol_blur
-            elif opt.SID:
+                
+            if opt.SID:
                 output_folder = 'SID/'
                 label_dir = opt.data_valgt_SID
                 npy = True
-            elif opt.SICE_mix:
+            if opt.SICE_mix:
                 output_folder = 'SICE_mix/'
                 label_dir = opt.data_valgt_SICE_mix
                 norm_size = False
-            elif opt.SICE_grad:
+            if opt.SICE_grad:
                 output_folder = 'SICE_grad/'
                 label_dir = opt.data_valgt_SICE_grad
                 norm_size = False
-            elif opt.fivek:
+                
+            if opt.fivek:
                 output_folder = 'fivek/'
                 label_dir = opt.data_valgt_fivek
                 norm_size = False
-            
 
-            im_dir = '/kaggle/working/output/' + output_folder + '/*.png'
-            print(f"Looking for images in: {im_dir}")
-            
-            # Update the eval() call to use the correct output path
-            output_path = '/kaggle/working/output/' + output_folder
-            
-            # Before calling eval(), add:
-            print(f"Test dataset size: {len(testing_data_loader.dataset)}")
-            print(f"Output will be saved to: {output_path}")
-
-            eval(model, testing_data_loader, model_out_path, '/kaggle/working/output/' + output_folder,
-            norm_size=norm_size, LOL=False, v2=False, alpha=0.8)
-            
-            # After calling eval(), add:
-            import glob
-            generated_files = glob.glob(os.path.join(output_path, '*.png'))
-            print(f"Generated {len(generated_files)} output images")
-
-            
-            # ADD DEBUGGING AND SAFETY CHECK FOR EUVP
             if opt.EUVP:
-                import glob
-                print(f"Looking for images in: {im_dir}")
-                print(f"Ground truth directory: {label_dir}")
-                
-                # Check if files exist
-                output_files = glob.glob(im_dir)
-                gt_files = glob.glob(label_dir + '*.png') + glob.glob(label_dir + '*.jpg')
-                
-                print(f"Found {len(output_files)} output images")
-                print(f"Found {len(gt_files)} ground truth images")
-                
-                if len(output_files) == 0:
-                    print("No output images found - skipping metrics calculation for this epoch")
-                    avg_psnr, avg_ssim = 0.0, 0.0
-                else:
-                    # Verify ground truth directory exists
-                    if not os.path.exists(label_dir):
-                        print(f"Ground truth directory does not exist: {label_dir}")
-                        avg_psnr, avg_ssim = 0.0, 0.0
-                    else:
-                        avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
-            else:
-                # For non-EUVP datasets, use original metrics calculation
-                avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
+                output_folder = 'EUVP/'
+                label_dir = opt.data_valgt_EUVP
+                norm_size = False
             
-            # avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, use_GT_mean=False)
+            im_dir = opt.val_folder + output_folder + '*.png'
+            eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
+                 norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
+            
+            avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, use_GT_mean=False)
             print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
             print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
-            # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
+            print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
             psnr.append(avg_psnr)
             ssim.append(avg_ssim)
-            # lpips.append(avg_lpips)
+            lpips.append(avg_lpips)
             print(psnr)
             print(ssim)
-            # print(lpips)
-            if opt.EUVP:
-                lpips.append(0.0)
+            print(lpips)
         torch.cuda.empty_cache()
-        
-    # CREATE RESULTS DIRECTORY BEFORE WRITING
-    if not os.path.exists("/kaggle/working/results"):
-        os.makedirs("/kaggle/working/results", exist_ok=True)
-    if not os.path.exists("/kaggle/working/results/training"):
-        os.makedirs("/kaggle/working/results/training", exist_ok=True)
     
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-    with open(f"/kaggle/working/results/training/metrics{now}.md", "w") as f:
+    with open(f"./results/training/metrics{now}.md", "w") as f:
         f.write("dataset: "+ output_folder + "\n")  
         f.write(f"lr: {opt.lr}\n")  
         f.write(f"batch size: {opt.batchSize}\n")  
@@ -359,4 +298,5 @@ if __name__ == '__main__':
         f.write("| Epochs | PSNR | SSIM | LPIPS |\n")  
         f.write("|----------------------|----------------------|----------------------|----------------------|\n")  
         for i in range(len(psnr)):
-            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | N/A |\n")         
+            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | {lpips[i]:.4f} |\n")  
+        

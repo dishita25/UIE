@@ -29,6 +29,8 @@ def option():
     parser.add_argument('--data_train_SID'          , type=str, default='./datasets/Sony_total_dark/train')
     parser.add_argument('--data_train_SICE'         , type=str, default='./datasets/SICE/Dataset/train')
     parser.add_argument('--data_train_fivek'        , type=str, default='./datasets/FiveK/train')
+    # For my EUVP
+    parser.add_argument('--data_train_EUVP'         , type=str, default='/kaggle/input/euvp-dataset/Paired/underwater_dark') # , help='EUVP training data path'
 
     # validation input
     parser.add_argument('--data_val_lol_blur'       , type=str, default='./datasets/LOL_blur/eval/low_blur')
@@ -39,6 +41,8 @@ def option():
     parser.add_argument('--data_val_SICE_mix'       , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_val_SICE_grad'      , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_test_fivek'         , type=str, default='./datasets/FiveK/test/input')
+    # For my EUVP
+    parser.add_argument('--data_val_EUVP'         , type=str, default='/kaggle/input/euvp-dataset/test_samples/Inp')
 
     # validation groundtruth
     parser.add_argument('--data_valgt_lol_blur'     , type=str, default='./datasets/LOL_blur/eval/high_sharp_scaled/')
@@ -49,6 +53,8 @@ def option():
     parser.add_argument('--data_valgt_SICE_mix'     , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_SICE_grad'    , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_fivek'        , type=str, default='./datasets/FiveK/test/target/')
+    # For my EUVP
+    parser.add_argument('--data_valgt_EUVP'        , type=str, default='/kaggle/input/euvp-dataset/test_samples/GTr')
 
     parser.add_argument('--val_folder', default='./results/', help='Location to save validation datasets')
 
@@ -70,7 +76,7 @@ def option():
     
     
     # choose which dataset you want to train, please only set one "True"
-    parser.add_argument('--lol_v1', type=bool, default=True)
+    parser.add_argument('--lol_v1', type=bool, default=False)
     parser.add_argument('--lolv2_real', type=bool, default=False)
     parser.add_argument('--lolv2_syn', type=bool, default=False)
     parser.add_argument('--lol_blur', type=bool, default=False)
@@ -78,11 +84,7 @@ def option():
     parser.add_argument('--SICE_mix', type=bool, default=False)
     parser.add_argument('--SICE_grad', type=bool, default=False)
     parser.add_argument('--fivek', type=bool, default=False)
+    # For my EUVP
+    parser.add_argument('--EUVP', type=bool, default=True)
     
-    # Add these arguments to the parser:
-    parser.add_argument('--EUVP', action='store_true', help='use EUVP dataset')
-    parser.add_argument('--data_train_EUVP', type=str, default='/kaggle/input/euvp-dataset/Paired/underwater_dark', help='EUVP training data path')
-    parser.add_argument('--test_samples', type=str, default='/kaggle/input/euvp-dataset/test_samples', help='EUVP test samples directory')
-    parser.add_argument('--test_samples_gt', type=str, default='/kaggle/input/euvp-dataset/test_samples/GTr', help='EUVP test samples ground truth directory')
-
     return parser

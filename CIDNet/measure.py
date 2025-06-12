@@ -18,6 +18,7 @@ mea_parser.add_argument('--lol_v2_syn', action='store_true', help='measure lol_v
 mea_parser.add_argument('--SICE_grad', action='store_true', help='measure SICE_grad dataset')
 mea_parser.add_argument('--SICE_mix', action='store_true', help='measure SICE_mix dataset')
 mea_parser.add_argument('--fivek', action='store_true', help='measure fivek dataset')
+# For my EUVP
 mea_parser.add_argument('--EUVP', action='store_true', help='measure EUVP dataset')
 mea = mea_parser.parse_args()
 
@@ -74,10 +75,10 @@ def calculate_psnr(target, ref):
 def metrics(im_dir, label_dir, use_GT_mean):
     avg_psnr = 0
     avg_ssim = 0
-    # avg_lpips = 0
+    avg_lpips = 0
     n = 0
-    # loss_fn = lpips.LPIPS(net='alex')
-    # loss_fn.cuda()
+    loss_fn = lpips.LPIPS(net='alex')
+    loss_fn.cuda()
     for item in tqdm(sorted(glob.glob(im_dir))):
         n += 1
         
@@ -104,22 +105,22 @@ def metrics(im_dir, label_dir, use_GT_mean):
         
         score_psnr = calculate_psnr(im1, im2)
         score_ssim = calculate_ssim(im1, im2)
-        # ex_p0 = lpips.im2tensor(im1).cuda()
-        # ex_ref = lpips.im2tensor(im2).cuda()
+        ex_p0 = lpips.im2tensor(im1).cuda()
+        ex_ref = lpips.im2tensor(im2).cuda()
         
 
-        # score_lpips = loss_fn.forward(ex_ref, ex_p0)
+        score_lpips = loss_fn.forward(ex_ref, ex_p0)
     
         avg_psnr += score_psnr
         avg_ssim += score_ssim
-        # avg_lpips += score_lpips.item()
-        # torch.cuda.empty_cache()
+        avg_lpips += score_lpips.item()
+        torch.cuda.empty_cache()
     
 
     avg_psnr = avg_psnr / n
     avg_ssim = avg_ssim / n
-    # avg_lpips = avg_lpips / n
-    return avg_psnr, avg_ssim, 0.0
+    avg_lpips = avg_lpips / n
+    return avg_psnr, avg_ssim, avg_lpips
 
 
 if __name__ == '__main__':
@@ -142,25 +143,12 @@ if __name__ == '__main__':
     if mea.fivek:
         im_dir = './output/fivek/*.jpg'
         label_dir = './datasets/FiveK/test/target/'
+    # For my EUVP
     if mea.EUVP:
-        im_dir = '/kaggle/working/output/EUVP/*.png'
-        label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr/'
-        
-        # Add safety check for EUVP
-        import glob
-        import os
-        
-        output_files = glob.glob(im_dir)
-        if len(output_files) == 0:
-            print("No output images found in ./output/EUVP/")
-            print("Please run evaluation first: python eval.py --EUVP")
-            exit(1)
-        
-        if not os.path.exists(label_dir):
-            print(f"Ground truth directory not found: {label_dir}")
-            exit(1)
+        im_dir = './output/EUVP/*.png'
+        label_dir = '/kaggle/input/euvp-dataset/test_samples/GTr'
 
-    avg_psnr, avg_ssim, _ = metrics(im_dir, label_dir, mea.use_GT_mean)
+    avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, mea.use_GT_mean)
     print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
     print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
-    # print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
+    print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))

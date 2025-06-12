@@ -1,3 +1,4 @@
+
 import os
 import random
 import torch
@@ -8,99 +9,37 @@ from os.path import join
 from data.util import *
 from torchvision import transforms as t
 
+    
 class EUVPDatasetFromFolder(data.Dataset):
     def __init__(self, data_dir, transform=None):
         super(EUVPDatasetFromFolder, self).__init__()
         self.data_dir = data_dir
         self.transform = transform
-        
-        # Based on your structure: use trainA and trainB folders
-        self.input_folder = join(data_dir, 'trainA')  # Degraded underwater images
-        self.reference_folder = join(data_dir, 'trainB')  # Enhanced reference images
-        
-        self.input_filenames = [join(self.input_folder, x) for x in listdir(self.input_folder) if is_image_file(x)]
-        self.reference_filenames = [join(self.reference_folder, x) for x in listdir(self.reference_folder) if is_image_file(x)]
-        
-        self.input_filenames.sort()
-        self.reference_filenames.sort()
-        
-        # Ensure equal number of input and reference images
-        assert len(self.input_filenames) == len(self.reference_filenames), f"Mismatch: {len(self.input_filenames)} input vs {len(self.reference_filenames)} reference images"
 
     def __getitem__(self, index):
-        input_img = load_img(self.input_filenames[index])
-        reference_img = load_img(self.reference_filenames[index])
-        
-        _, file1 = os.path.split(self.input_filenames[index])
-        _, file2 = os.path.split(self.reference_filenames[index])
-        
+
+        folder = self.data_dir+'/trainA'
+        folder2= self.data_dir+'/trainB'
+        data_filenames = [join(folder, x) for x in listdir(folder) if is_image_file(x)]
+        data_filenames2 = [join(folder2, x) for x in listdir(folder2) if is_image_file(x)]
+        num = len(data_filenames)
+
+        im1 = load_img(data_filenames[index])
+        im2 = load_img(data_filenames2[index])
+        _, file1 = os.path.split(data_filenames[index])
+        _, file2 = os.path.split(data_filenames2[index])
         seed = random.randint(1, 1000000)
-        seed = np.random.randint(seed)
-        
+        seed = np.random.randint(seed) # make a seed with numpy generator 
         if self.transform:
+            random.seed(seed) # apply this seed to img tranfsorms
+            torch.manual_seed(seed) # needed for torchvision 0.7
+            im1 = self.transform(im1)
             random.seed(seed)
-            torch.manual_seed(seed)
-            input_img = self.transform(input_img)
-            
-            random.seed(seed)
-            torch.manual_seed(seed)
-            reference_img = self.transform(reference_img)
-        
-        # Apply padding to BOTH images with the same dimensions
-        import torch.nn.functional as F
-        factor = 8
-        h, w = input_img.shape[1], input_img.shape[2]
-        H, W = ((h + factor) // factor) * factor, ((w + factor) // factor) * factor
-        padh = H - h if h % factor != 0 else 0
-        padw = W - w if w % factor != 0 else 0
-        
-        input_img = F.pad(input_img.unsqueeze(0), (0,padw,0,padh), 'reflect').squeeze(0)
-        reference_img = F.pad(reference_img.unsqueeze(0), (0,padw,0,padh), 'reflect').squeeze(0)  # ADD THIS LINE
-        
-        return input_img, reference_img, file1, file2
+            torch.manual_seed(seed)         
+            im2 = self.transform(im2) 
+        return im1, im2, file1, file2
 
     def __len__(self):
-        return len(self.input_filenames)
-
-class EUVPTestDatasetFromFolder(data.Dataset):
-    def __init__(self, data_dir, transform=None):
-        super(EUVPTestDatasetFromFolder, self).__init__()
-        self.data_dir = data_dir
-        self.transform = transform
-        
-        # For test_samples: use Inp and GTr folders
-        self.input_folder = join(data_dir, 'Inp')  # Test input images
-        # self.reference_folder = join(data_dir, 'GTr')  # Test ground truth images
-        
-        self.input_filenames = [join(self.input_folder, x) for x in listdir(self.input_folder) if is_image_file(x)]
-        # self.reference_filenames = [join(self.reference_folder, x) for x in listdir(self.reference_folder) if is_image_file(x)]
-        
-        self.input_filenames.sort()
-        # self.reference_filenames.sort()
-        
-        # ADD DEBUGGING
-        print(f"EUVP Test Dataset: Found {len(self.input_filenames)} images in {self.input_folder}")
-        if len(self.input_filenames) > 0:
-            print(f"First few files: {self.input_filenames[:3]}")
-            
-
-    def __getitem__(self, index):
-        input_img = load_img(self.input_filenames[index])
-        _, file = os.path.split(self.input_filenames[index])
-        
-        if self.transform:
-            input_img = self.transform(input_img)
-            
-        # Add padding for factor-8 requirement like other eval datasets
-        import torch.nn.functional as F
-        factor = 8
-        h, w = input_img.shape[1], input_img.shape[2]
-        H, W = ((h + factor) // factor) * factor, ((w + factor) // factor) * factor
-        padh = H - h if h % factor != 0 else 0
-        padw = W - w if w % factor != 0 else 0
-        input_img = F.pad(input_img.unsqueeze(0), (0,padw,0,padh), 'reflect').squeeze(0)
-        
-        return input_img, file, h, w
-
-    def __len__(self):
-        return len(self.input_filenames)
+        # Return actual dataset size
+        folder = self.data_dir + '/low'
+        return len([x for x in listdir(folder) if is_image_file(x)])
