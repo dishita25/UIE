@@ -309,9 +309,25 @@ if __name__ == '__main__':
             if not os.path.exists(train_output_folder):
                 os.makedirs(train_output_folder)
                 
-            eval(model, training_data_loader, model_out_path, train_output_folder,
+            # Create a separate data loader for training set evaluation with batch_size=1
+            if opt.lol_v1:
+                train_eval_set = get_lol_training_set(opt.data_train_lol_v1, size=opt.cropSize)
+            elif opt.lolv2_real:
+                train_eval_set = get_lol_v2_training_set(opt.data_train_lolv2_real, size=opt.cropSize)
+            elif opt.lolv2_syn:
+                train_eval_set = get_lol_v2_syn_training_set(opt.data_train_lolv2_syn, size=opt.cropSize)
+            elif opt.EUVP:
+                train_eval_set = get_EUVP_training_set(opt.data_train_EUVP, size=opt.cropSize)
+            else:
+                print/("Error in creating Dataloader for training")  # Fallback to existing train_set
+
+            # Create evaluation data loader with batch_size=1
+            training_eval_loader = DataLoader(dataset=train_eval_set, num_workers=1, batch_size=1, shuffle=False)
+
+            eval(model, training_eval_loader, model_out_path, train_output_folder,
                 norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
-            
+
+           
             train_im_dir = train_output_folder + '*.jpg'
             
             # Determine training ground truth directory based on dataset
