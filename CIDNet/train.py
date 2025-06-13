@@ -38,8 +38,12 @@ def train_init():
 def train(epoch):
     model.train()
     loss_print = 0
+    loss_rgb_print = 0  # For rgb loss tracking
+    loss_hvi_print = 0  # For hvi loss tracking
     pic_cnt = 0
     loss_last_10 = 0
+    loss_rgb_last_10 = 0  # This as well
+    loss_hvi_last_10 = 0  # This as well
     pic_last_10 = 0
     train_len = len(training_data_loader)
     iter = 0
@@ -72,13 +76,21 @@ def train(epoch):
         optimizer.step()
         
         loss_print = loss_print + loss.item()
+        loss_rgb_print = loss_rgb_print + loss_rgb.item()  # This
+        loss_hvi_print = loss_hvi_print + loss_hvi.item()  # This
         loss_last_10 = loss_last_10 + loss.item()
+        loss_rgb_last_10 = loss_rgb_last_10 + loss_rgb.item()  # This
+        loss_hvi_last_10 = loss_hvi_last_10 + loss_hvi.item()  # This
         pic_cnt += 1
         pic_last_10 += 1
         if iter == train_len:
-            print("===> Epoch[{}]: Loss: {:.4f} || Learning rate: lr={}.".format(epoch,
-                loss_last_10/pic_last_10, optimizer.param_groups[0]['lr']))
+            print("===> Epoch[{}]: Total Loss: {:.4f} | RGB Loss: {:.4f} | HVI Loss: {:.4f} || Learning rate: lr={}.".format(
+            epoch, loss_last_10/pic_last_10, loss_rgb_last_10/pic_last_10, 
+            loss_hvi_last_10/pic_last_10, optimizer.param_groups[0]['lr']))  # Changed this print
+            
             loss_last_10 = 0
+            loss_rgb_last_10 = 0  # This
+            loss_hvi_last_10 = 0  # This
             pic_last_10 = 0
             output_img = transforms.ToPILImage()((output_rgb)[0].squeeze(0))
             gt_img = transforms.ToPILImage()((gt_rgb)[0].squeeze(0))
@@ -86,7 +98,7 @@ def train(epoch):
                 os.mkdir(opt.val_folder+'training') 
             output_img.save(opt.val_folder+'training/test.png')
             gt_img.save(opt.val_folder+'training/gt.png')
-    return loss_print, pic_cnt
+    return loss_print, loss_rgb_print, loss_hvi_print, pic_cnt
                 
 
 def checkpoint(epoch):
@@ -222,7 +234,7 @@ if __name__ == '__main__':
         os.mkdir(opt.val_folder) 
         
     for epoch in range(start_epoch+1, opt.nEpochs + start_epoch + 1):
-        epoch_loss, pic_num = train(epoch)
+        epoch_loss, epoch_rgb_loss, epoch_hvi_loss, pic_num = train(epoch)  # Updated
         scheduler.step()
         
         if epoch % opt.snapshots == 0:
@@ -269,6 +281,9 @@ if __name__ == '__main__':
                 norm_size = True
             
             im_dir = opt.val_folder + output_folder + '*.jpg'
+            
+            # Validation set evaluation
+            print("\n===> Evaluating on Validation Set:")
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
                  norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
             
@@ -283,16 +298,48 @@ if __name__ == '__main__':
             #     print("Output directory doesn't exist!")
 
             
-            avg_psnr, avg_ssim, avg_lpips = metrics(im_dir, label_dir, use_GT_mean=False)
-            print("===> Avg.PSNR: {:.4f} dB ".format(avg_psnr))
-            print("===> Avg.SSIM: {:.4f} ".format(avg_ssim))
-            print("===> Avg.LPIPS: {:.4f} ".format(avg_lpips))
-            psnr.append(avg_psnr)
-            ssim.append(avg_ssim)
-            lpips.append(avg_lpips)
-            print(psnr)
-            print(ssim)
-            print(lpips)
+            avg_psnr_val, avg_ssim_val, avg_lpips_val = metrics(im_dir, label_dir, use_GT_mean=False)
+            print("===> Validation - Avg.PSNR: {:.4f} dB ".format(avg_psnr_val))
+            print("===> Validation - Avg.SSIM: {:.4f} ".format(avg_ssim_val))
+            print("===> Validation - Avg.LPIPS: {:.4f} ".format(avg_lpips_val))
+            
+            # Training set evaluation - ADD THIS SECTION
+            print("\n===> Evaluating on Training Set:")
+            train_output_folder = opt.val_folder + output_folder + 'train/'
+            if not os.path.exists(train_output_folder):
+                os.makedirs(train_output_folder)
+                
+            eval(model, training_data_loader, model_out_path, train_output_folder,
+                norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
+            
+            train_im_dir = train_output_folder + '*.jpg'
+            
+            # Determine training ground truth directory based on dataset
+            if opt.lol_v1:
+                train_label_dir = opt.data_train_lol_v1.replace('/low', '/high/')
+            elif opt.lolv2_real:
+                train_label_dir = opt.data_train_lolv2_real.replace('/Low', '/Normal/')
+            elif opt.lolv2_syn:
+                train_label_dir = opt.data_train_lolv2_syn.replace('/Low', '/Normal/')
+            elif opt.EUVP:
+                train_label_dir = opt.data_train_EUVP.replace('/trainA', '/trainB/')
+            else:
+                train_label_dir = label_dir  # Fallback
+                
+            avg_psnr_train, avg_ssim_train, avg_lpips_train = metrics(train_im_dir, train_label_dir, use_GT_mean=False)
+            
+            print("===> Training - Avg.PSNR: {:.4f} dB ".format(avg_psnr_train))
+            print("===> Training - Avg.SSIM: {:.4f} ".format(avg_ssim_train))
+            print("===> Training - Avg.LPIPS: {:.4f} ".format(avg_lpips_train))
+            
+            # Store both validation and training metrics
+            psnr.append({'val': avg_psnr_val, 'train': avg_psnr_train})
+            ssim.append({'val': avg_ssim_val, 'train': avg_ssim_train})
+            lpips.append({'val': avg_lpips_val, 'train': avg_lpips_train})
+            
+            print("Validation metrics:", [p['val'] for p in psnr])
+            print("Training metrics:", [p['train'] for p in psnr])
+           
         torch.cuda.empty_cache()
     
     now = datetime.now().strftime("%Y-%m-%d-%H%M%S")
@@ -306,8 +353,8 @@ if __name__ == '__main__':
         f.write(f"D_weight: {opt.D_weight}\n")  
         f.write(f"E_weight: {opt.E_weight}\n")  
         f.write(f"P_weight: {opt.P_weight}\n")  
-        f.write("| Epochs | PSNR | SSIM | LPIPS |\n")  
-        f.write("|----------------------|----------------------|----------------------|----------------------|\n")  
+        f.write("| Epochs | Val_PSNR | Val_SSIM | Val_LPIPS | Train_PSNR | Train_SSIM | Train_LPIPS |\n")
+        f.write("|--------|----------|----------|-----------|-------------|-------------|-------------|\n")
         for i in range(len(psnr)):
-            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | { psnr[i]:.4f} | {ssim[i]:.4f} | {lpips[i]:.4f} |\n")  
-        
+            f.write(f"| {opt.start_epoch+(i+1)*opt.snapshots} | {psnr[i]['val']:.4f} | {ssim[i]['val']:.4f} | {lpips[i]['val']:.4f} | {psnr[i]['train']:.4f} | {ssim[i]['train']:.4f} | {lpips[i]['train']:.4f} |\n")  
+            
