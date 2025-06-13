@@ -311,16 +311,17 @@ if __name__ == '__main__':
                 
             # Create a separate data loader for training set evaluation with batch_size=1
             if opt.lol_v1:
-                train_eval_set = get_lol_training_set(opt.data_train_lol_v1, size=opt.cropSize)
+                train_eval_set = get_eval_set(opt.data_train_lol_v1 + '/low')  # Use low folder
             elif opt.lolv2_real:
-                train_eval_set = get_lol_v2_training_set(opt.data_train_lolv2_real, size=opt.cropSize)
+                train_eval_set = get_eval_set(opt.data_train_lolv2_real + '/Low')  # Use Low folder
             elif opt.lolv2_syn:
-                train_eval_set = get_lol_v2_syn_training_set(opt.data_train_lolv2_syn, size=opt.cropSize)
+                train_eval_set = get_eval_set(opt.data_train_lolv2_syn + '/Low')  # Use Low folder
             elif opt.EUVP:
-                train_eval_set = get_EUVP_training_set(opt.data_train_EUVP, size=opt.cropSize)
+                train_eval_set = get_eval_set(opt.data_train_EUVP + '/trainA')  # Use trainA folder
             else:
-                print/("Error in creating Dataloader for training")  # Fallback to existing train_set
-
+                print("Error: Unsupported dataset for training evaluation")
+                continue
+            
             # Create evaluation data loader with batch_size=1
             training_eval_loader = DataLoader(dataset=train_eval_set, num_workers=1, batch_size=1, shuffle=False)
 
@@ -332,13 +333,13 @@ if __name__ == '__main__':
             
             # Determine training ground truth directory based on dataset
             if opt.lol_v1:
-                train_label_dir = opt.data_train_lol_v1.replace('/low', '/high/')
+                train_label_dir = opt.data_train_lol_v1 + '/high/'
             elif opt.lolv2_real:
-                train_label_dir = opt.data_train_lolv2_real.replace('/Low', '/Normal/')
+                train_label_dir = opt.data_train_lolv2_real + '/Normal/'
             elif opt.lolv2_syn:
-                train_label_dir = opt.data_train_lolv2_syn.replace('/Low', '/Normal/')
+                train_label_dir = opt.data_train_lolv2_syn + '/Normal/'
             elif opt.EUVP:
-                train_label_dir = opt.data_train_EUVP.replace('/trainA', '/trainB/')
+                train_label_dir = opt.data_train_EUVP + '/trainB/'
             else:
                 train_label_dir = label_dir  # Fallback
                 
