@@ -14,10 +14,8 @@ import os
 import random
 from sklearn.cluster import KMeans
 
-opt.input_dir = "Input/Images"           
-opt.input_name = "your_image.jpg"  
 
-
+#no opt
 # custom weights initialization called on netG and netD
 
 def read_image(opt):
