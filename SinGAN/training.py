@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from SinGAN.imresize import imresize
 from torchvision.models import vgg19
 
+#training 
+
 class VGG19_PercepLoss(nn.Module):
     def __init__(self, device='cuda'):
         super().__init__()
@@ -139,7 +141,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             loss_D.backward()
             optimizerD.step()
 
-         errD2plot.append(loss_D.detach())
+        errD2plot.append(loss_D.detach())
 
 
         #     output = netD(real).to(opt.device)
@@ -374,3 +376,4 @@ def init_models(opt):
     print(netD)
 
     return netD, netG
+
