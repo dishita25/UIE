@@ -10,7 +10,7 @@ from SinGAN.imresize import imresize
 from torchvision.models import vgg19
 
 #training 
-
+#noise changed
 class VGG19_PercepLoss(nn.Module):
     def __init__(self, device='cuda'):
         super().__init__()
@@ -132,7 +132,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             loss_D_real = Adv_cGAN(output_real, torch.ones_like(output_real))
             
             # Fake loss
-            fake = netG(noise.detach(), prev)
+            fake = netG(noise_.detach(), prev)
             output_fake = netD(fake.detach())
             loss_D_fake = Adv_cGAN(output_fake, torch.zeros_like(output_fake))
             
