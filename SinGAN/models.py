@@ -5,11 +5,22 @@ import torch.nn.functional as F
 
 
 class ConvBlock(nn.Sequential):
-    def __init__(self, in_channel, out_channel, ker_size, padd, stride):
-        super(ConvBlock,self).__init__()
-        self.add_module('conv',nn.Conv2d(in_channel ,out_channel,kernel_size=ker_size,stride=stride,padding=padd)),
-        self.add_module('norm',nn.BatchNorm2d(out_channel)),
-        self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=False))
+    def weights_init(m):
+        classname = m.__class__.__name__
+    # Only initialize during model creation
+        if hasattr(m, 'weight') and not hasattr(m, '_initialized'):
+            if classname.find('Conv2d') != -1:
+                nn.init.normal_(m.weight.data, 0.0, 0.02)
+            elif classname.find('Norm') != -1:
+                nn.init.normal_(m.weight.data, 1.0, 0.02) 
+                nn.init.constant_(m.bias.data, 0)
+            m._initialized = True  # Mark as initialized
+
+    # def __init__(self, in_channel, out_channel, ker_size, padd, stride):
+    #     super(ConvBlock,self).__init__()
+    #     self.add_module('conv',nn.Conv2d(in_channel ,out_channel,kernel_size=ker_size,stride=stride,padding=padd)),
+    #     self.add_module('norm',nn.BatchNorm2d(out_channel)),
+    #     self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=False))
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -54,10 +65,17 @@ class GeneratorConcatSkip2CleanAdd(nn.Module):
             nn.Conv2d(max(N,opt.min_nfc),opt.nc_im,kernel_size=opt.ker_size,stride =1,padding=opt.padd_size),
             nn.Tanh()
         )
+        self.apply(self._init_weights) #New code added 
+
     def forward(self,x,y):
-        x = self.head(x)
-        x = self.body(x)
-        x = self.tail(x)
+        with torch.no_grad():
+            x = self.head(x)
+            x = self.body(x)
+            x = self.tail(x)
         ind = int((y.shape[2]-x.shape[2])/2)
         y_cropped = y[:,:,ind:(y.shape[2]-ind),ind:(y.shape[3]-ind)].clone()
         return x+y_cropped
+    
+    #New function added 
+    def _init_weights(self, m):
+        weights_init(m)  # Use modified initializer
