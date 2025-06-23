@@ -4,6 +4,7 @@ from SinGAN.training import *
 import SinGAN.functions as functions
 
 #Pushing the code to GitHub
+#Adding a new line to test the commit
 if __name__ == '__main__':
     parser = get_arguments()
     parser.add_argument('--input_dir', help='input image dir', default='Input/Images')
