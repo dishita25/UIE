@@ -8,6 +8,8 @@ import math
 import matplotlib.pyplot as plt
 from SinGAN.imresize import imresize
 
+torch.autograd.set_detect_anomaly(True)
+
 def train(opt,Gs,Zs,reals,NoiseAmp):
     real_ = functions.read_image(opt)
     in_s = 0
