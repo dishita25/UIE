@@ -178,8 +178,15 @@ for epoch in range(epoch, num_epochs):
         loss_con = L_vgg(imgs_fake, imgs_good_gt)# content loss
         
         # HVI
-        imgs_fake_hvi = RGB_HVI.HVIT(imgs_fake)
-        imgs_good_gt_hvi = RGB_HVI.HVIT(imgs_good_gt)
+        # Create HVI transform instance
+        hvi_transform = RGB_HVI()
+        if torch.cuda.is_available():
+            hvi_transform = hvi_transform.cuda()
+
+        # Apply HVI transform
+        imgs_fake_hvi = hvi_transform.HVIT(imgs_fake)
+        imgs_good_gt_hvi = hvi_transform.HVIT(imgs_good_gt)
+
         
         loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + args.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
         loss_rgb = (L1_loss(imgs_fake, imgs_good_gt) + D_loss(imgs_fake, imgs_good_gt) + E_loss(imgs_fake, imgs_good_gt) + args.P_weight * P_loss(imgs_fake, imgs_good_gt)[0])
