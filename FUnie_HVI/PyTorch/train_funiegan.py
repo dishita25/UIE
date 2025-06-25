@@ -23,17 +23,27 @@ import torchvision.transforms as transforms
 from nets.commons import Weights_Normal, VGG19_PercepLoss
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from utils.data_utils import GetTrainingPairs, GetValImage
+# Imports from HVI_CIDNet part
+from loss.losses import *
+from nets.HVI_transform import *
 
 ## get configs and training options
 parser = argparse.ArgumentParser()
 parser.add_argument("--cfg_file", type=str, default="/kaggle/working/UIE/FUnie_HVI/PyTorch/configs/train_euvp.yaml")
 #parser.add_argument("--cfg_file", type=str, default="configs/train_ufo.yaml")
 parser.add_argument("--epoch", type=int, default=0, help="which epoch to start from")
-parser.add_argument("--num_epochs", type=int, default=2, help="number of epochs of training")
+parser.add_argument("--num_epochs", type=int, default=10, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.0003, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of 1st order momentum")
 parser.add_argument("--b2", type=float, default=0.99, help="adam: decay of 2nd order momentum")
+# From HVI-CIDNet
+parser.add_argument('--L1_weight', type=float, default=1.0)
+parser.add_argument('--D_weight',  type=float, default=0.5)
+parser.add_argument('--E_weight',  type=float, default=50.0)
+parser.add_argument('--P_weight',  type=float, default=1e-2)
+parser.add_argument('--HVI_weight', type=float, default=1.0)
+
 args = parser.parse_args()
 
 ## training params
@@ -68,6 +78,16 @@ L1_G  = torch.nn.L1Loss() # similarity loss (l1)
 L_vgg = VGG19_PercepLoss() # content loss (vgg)
 lambda_1, lambda_con = 7, 3 # 7:3 (as in paper)
 patch = (1, img_height//16, img_width//16) # 16x16 for 256x256
+# Additional losses from HVI-CIDNet
+L1_weight = args.L1_weight
+D_weight = args.D_weight
+E_weight = args.E_weight
+P_weight = args.P_weight
+L1_loss= L1Loss(loss_weight=L1_weight, reduction='mean')
+D_loss = SSIM(weight=D_weight)
+E_loss = EdgeLoss(loss_weight=E_weight)
+P_loss = PerceptualLoss({'conv1_2': 1, 'conv2_2': 1,'conv3_4': 1,'conv4_4': 1}, perceptual_weight = P_weight ,criterion='mse')
+
 
 # Initialize generator and discriminator
 generator = GeneratorFunieGAN()
@@ -80,6 +100,11 @@ if torch.cuda.is_available():
     Adv_cGAN.cuda()
     L1_G = L1_G.cuda()
     L_vgg = L_vgg.cuda()
+    # Losses from HVI-CIDNet
+    L1_loss.cuda()
+    D_loss = D_loss.cuda()
+    E_loss = E_loss.cuda()
+    P_loss.cuda()
     Tensor = torch.cuda.FloatTensor
 else:
     Tensor = torch.FloatTensor
@@ -146,20 +171,31 @@ for epoch in range(epoch, num_epochs):
         optimizer_G.zero_grad()
         imgs_fake = generator(imgs_distorted)
         pred_fake = discriminator(imgs_fake, imgs_distorted)
+        
+        # RGB losses
         loss_GAN =  Adv_cGAN(pred_fake, valid) # GAN loss
         loss_1 = L1_G(imgs_fake, imgs_good_gt) # similarity loss
         loss_con = L_vgg(imgs_fake, imgs_good_gt)# content loss
+        
+        # HVI
+        imgs_fake_hvi = RGB_HVI.HVIT(imgs_fake)
+        imgs_good_gt_hvi = RGB_HVI.HVIT(imgs_good_gt)
+        
+        loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + args.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
+        loss_rgb = (L1_loss(imgs_fake, imgs_good_gt) + D_loss(imgs_fake, imgs_good_gt) + E_loss(imgs_fake, imgs_good_gt) + args.P_weight * P_loss(imgs_fake, imgs_good_gt)[0])
+        
         # Total loss (Section 3.2.1 in the paper)
-        loss_G = loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con 
+        loss_G = (loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con ) + (loss_rgb + args.HVI_weight * loss_hvi)
         loss_G.backward()
         optimizer_G.step()
 
         ## Print log
         if not i%50:
-            sys.stdout.write("\r[Epoch %d/%d: batch %d/%d] [DLoss: %.3f, GLoss: %.3f, AdvLoss: %.3f]"
+            sys.stdout.write("\r[Epoch %d/%d: batch %d/%d] [DLoss: %.3f, GLoss: %.3f, AdvLoss: %.3f, HVI_Loss: %.3f, RGB_Loss: %.3f]"
                               %(
                                 epoch, num_epochs, i, len(dataloader),
                                 loss_D.item(), loss_G.item(), loss_GAN.item(),
+                                loss_hvi.item(), loss_rgb.item()
                                )
             )
         ## If at sample interval save image

@@ -6,6 +6,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from nets.HVI_transform import RGB_HVI
 
 
 class UNetDown(nn.Module):
@@ -58,9 +59,12 @@ class GeneratorFunieGAN(nn.Module):
             nn.Conv2d(64, out_channels, 4, padding=1),
             nn.Tanh(),
         )
+        
+        self.trans = RGB_HVI()  # To convert from RGB to HVI
 
     def forward(self, x):
-        d1 = self.down1(x)
+        hvi = self.trans.HVIT(x)
+        d1 = self.down1(hvi)
         d2 = self.down2(d1)
         d3 = self.down3(d2)
         d4 = self.down4(d3)
@@ -69,7 +73,10 @@ class GeneratorFunieGAN(nn.Module):
         u2 = self.up2(u1, d3)
         u3 = self.up3(u2, d2)
         u45 = self.up4(u3, d1)
-        return self.final(u45)
+        output_hvi = self.final(u45) + hvi
+        output_rgb = self.trans.PHVIT(output_hvi)
+        
+        return output_rgb
 
 
 class DiscriminatorFunieGAN(nn.Module):
