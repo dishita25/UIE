@@ -165,6 +165,8 @@ for epoch in range(epoch, num_epochs):
         # Total loss: real + fake (standard PatchGAN)
         loss_D = 0.5 * (loss_real + loss_fake) * 10.0 # 10x scaled for stability
         loss_D.backward()
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
         optimizer_D.step()
 
         ## Train Generator
@@ -194,6 +196,8 @@ for epoch in range(epoch, num_epochs):
         # Total loss (Section 3.2.1 in the paper)
         loss_G = (loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con ) + (loss_rgb + args.HVI_weight * loss_hvi)
         loss_G.backward()
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(generator.parameters(), max_norm=1.0)        
         optimizer_G.step()
 
         ## Print log
