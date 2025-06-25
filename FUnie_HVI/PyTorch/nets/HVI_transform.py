@@ -14,7 +14,7 @@ class RGB_HVI(nn.Module):
         self.this_k = 0
         
     def HVIT(self, img):
-        eps = 1e-8
+        eps = 1e-6
         device = img.device
         dtypes = img.dtype
         hue = torch.Tensor(img.shape[0], img.shape[2], img.shape[3]).to(device).to(dtypes)
@@ -47,7 +47,7 @@ class RGB_HVI(nn.Module):
         return xyz
     
     def PHVIT(self, img):
-        eps = 1e-8
+        eps = 1e-6
         H,V,I = img[:,0,:,:],img[:,1,:,:],img[:,2,:,:]
         
         # clip
