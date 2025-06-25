@@ -186,8 +186,8 @@ for epoch in range(epoch, num_epochs):
             hvi_transform = hvi_transform.cuda()
 
         # Apply HVI transform
-        imgs_fake_hvi = hvi_transform.HVIT(imgs_fake)
-        imgs_good_gt_hvi = hvi_transform.HVIT(imgs_good_gt)
+        imgs_fake_hvi = hvi_transform.HVIT((imgs_fake + 1.0) / 2.0)
+        imgs_good_gt_hvi = hvi_transform.HVIT((imgs_good_gt + 1.0) / 2.0)
 
         
         loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + args.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
