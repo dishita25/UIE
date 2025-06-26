@@ -22,10 +22,11 @@ import torchvision.transforms as transforms
 
 ## options
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="data/test/A/")
-parser.add_argument("--sample_dir", type=str, default="data/output/")
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/GTr")
+parser.add_argument("--sample_dir", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/output/")
+parser.add_argument("--enhanced_only", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/enhanced_only/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="models/funie_generator.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/FUnie_HVI/PyTorch/models/funie_generator.pth")
 opt = parser.parse_args()
 
 ## checks
@@ -71,7 +72,9 @@ for path in test_files:
     times.append(time.time()-s)
     # save output
     img_sample = torch.cat((inp_img.data, gen_img.data), -1)
-    save_image(img_sample, join(opt.sample_dir, basename(path)), normalize=True)
+    save_image(img_sample, join(opt.sample_dir, basename(path)), normalize=True) # Combined 
+    save_image(gen_img.data, join(opt.enhanced_only, basename(path)), normalize=True) # Only the enhanaced one
+
     print ("Tested: %s" % path)
 
 ## run-time    
