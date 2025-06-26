@@ -26,7 +26,7 @@ parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/
 parser.add_argument("--sample_dir", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/output/")
 parser.add_argument("--enhanced_only", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/enhanced_only/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/FUnie_HVI/PyTorch/models/funie_generator.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/checkpoints/FunieGAN/EUVP/generator_1.pth")
 opt = parser.parse_args()
 
 ## checks
@@ -47,7 +47,7 @@ else:
     pass
 
 ## load weights
-model.load_state_dict(torch.load(opt.model_path))
+model.load_state_dict(torch.load(opt.model_path), strict = False)
 if is_cuda: model.cuda()
 model.eval()
 print ("Loaded model from %s" % (opt.model_path))
