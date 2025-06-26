@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--cfg_file", type=str, default="/kaggle/working/UIE/FUnie_HVI/PyTorch/configs/train_euvp.yaml")
 #parser.add_argument("--cfg_file", type=str, default="configs/train_ufo.yaml")
 parser.add_argument("--epoch", type=int, default=0, help="which epoch to start from")
-parser.add_argument("--num_epochs", type=int, default=10, help="number of epochs of training")
+parser.add_argument("--num_epochs", type=int, default=2, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.0003, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of 1st order momentum")
@@ -194,7 +194,7 @@ for epoch in range(epoch, num_epochs):
         loss_rgb = (L1_loss(imgs_fake, imgs_good_gt) + D_loss(imgs_fake, imgs_good_gt) + E_loss(imgs_fake, imgs_good_gt) + args.P_weight * P_loss(imgs_fake, imgs_good_gt)[0])
         
         # Total loss (Section 3.2.1 in the paper)
-        loss_G = (loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con ) + (loss_rgb + args.HVI_weight * loss_hvi)
+        loss_G = (loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con ) + (loss_rgb ) #+ args.HVI_weight * loss_hvi
         loss_G.backward()
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(generator.parameters(), max_norm=1.0)        
