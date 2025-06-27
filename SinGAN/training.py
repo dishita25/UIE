@@ -909,7 +909,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             # Perceptual/content loss
             loss_con = L_vgg(fake, real)
             # Total generator loss (adversarial + L1 + perceptual)
-            loss_G = errG_adv + lambda_1 * loss_1 + lambda_con * loss_con
+            loss_G = errG + lambda_1 * loss_1 + lambda_con * loss_con
 
             loss_G.backward(retain_graph=True)
             optimizerG.step()
