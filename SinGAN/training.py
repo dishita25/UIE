@@ -697,7 +697,6 @@ import torch.optim as optim
 import torch.utils.data
 import math
 import matplotlib.pyplot as plt
-from Simresize import imresize
 from SinGAN.imresize import imresize
 import torch.nn.functional as F  
 
