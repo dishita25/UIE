@@ -713,7 +713,7 @@ class VGG19_PercepLoss(nn.Module):
 
     def get_features(self, image, layers=None):
         if layers is None:
-            layers = {'30': 'conv5_2'}
+            layers = {'16': 'conv3_3'}
         features = {}
         x = image
         for name, layer in self.vgg._modules.items():
@@ -722,10 +722,14 @@ class VGG19_PercepLoss(nn.Module):
                 features[layers[name]] = x
         return features
 
-    def forward(self, pred, true, layer='conv5_2'):
+    def forward(self, pred, true, layer='conv3_3'):
+        pred = F.interpolate(pred, size=(224, 224), mode='bilinear', align_corners=False)
+        true = F.interpolate(true, size=(224, 224), mode='bilinear', align_corners=False)
+
         true_f = self.get_features(true)
         pred_f = self.get_features(pred)
         return torch.mean((true_f[layer] - pred_f[layer])**2)
+
 
 
 
