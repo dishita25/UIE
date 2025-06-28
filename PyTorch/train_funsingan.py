@@ -1,3 +1,5 @@
+# train_funiegan_singan.py
+
 import os
 import math
 import yaml
@@ -23,7 +25,7 @@ def get_config():
     parser.add_argument("--num_layer", type=int, default=5, help="Number of layers")
     parser.add_argument("--stride", type=int, default=1, help="Stride")
     parser.add_argument("--noise_amp_init", type=float, default=0.1, help="Initial noise amplitude")
-    parser.add_argument("--scale_factor_init", type=float, default=0.75, help="Scale factor for pyramid")
+    parser.add_argument("--scale_factor", type=float, default=0.75, help="Scale factor for pyramid")
     parser.add_argument("--scale1", type=float, default=1.0, help="Initial scale")
     parser.add_argument("--stop_scale", type=int, default=5, help="Stop scale")
     parser.add_argument("--lr_g", type=float, default=0.0005, help="Generator learning rate")
@@ -37,7 +39,6 @@ def get_config():
     parser.add_argument("--out", type=str, default="TrainedModels", help="Output directory")
     parser.add_argument("--manualSeed", type=int, default=None, help="Manual seed")
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
-    parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
     
     args = parser.parse_args()
     
@@ -104,8 +105,8 @@ def train_single_image_with_funiegan(opt):
         print(f"Real image shape: {real.shape}")
 
         # Initialize networks
-        generator = GeneratorFunieGAN(opt).to(opt.device)
-        discriminator = DiscriminatorFunieGAN(opt).to(opt.device)
+        generator = GeneratorFunieGAN(opt.nc_im, opt.nfc, opt.ker_size, opt.num_layer, opt.stride).to(opt.device)
+        discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
         
         # Apply weight initialization
         generator.apply(functions.weights_init)
@@ -308,7 +309,7 @@ def main():
             # Reconstruct generators
             Gs = []
             for i, state_dict in enumerate(checkpoint['Gs']):
-                G = GeneratorFunieGAN(opt).to(opt.device)
+                G = GeneratorFunieGAN(opt.nc_im, opt.nfc, opt.ker_size, opt.num_layer, opt.stride).to(opt.device)
                 G.load_state_dict(state_dict)
                 G.eval()
                 Gs.append(G)
