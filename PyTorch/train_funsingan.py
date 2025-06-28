@@ -110,8 +110,8 @@ def train_single_image_with_funiegan(opt):
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
         
         # Apply weight initialization
-        generator.apply(Weights_normal)
-        discriminator.apply(Weights_normal)
+        generator.apply(Weights_Normal)
+        discriminator.apply(Weights_Normal)
 
         # Initialize optimizers
         optimizer_G = optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
