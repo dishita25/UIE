@@ -155,6 +155,8 @@ def train_single_image_with_funiegan(opt):
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
 
+            if prev.shape != noise_.shape:
+                prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
             # Create input noise
             noise = opt.noise_amp * noise_ + prev
 
