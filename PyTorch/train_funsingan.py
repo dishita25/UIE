@@ -1,4 +1,3 @@
-# train_funiegan_singan.py
 
 import os
 import math
@@ -11,7 +10,7 @@ import matplotlib.pyplot as plt
 from imresize import imresize
 import functions  
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
-from nets.commons import VGG19_PercepLoss, Weights_Normal
+from nets.commons import VGG19_PercepLoss
 
 
 def get_config():
@@ -110,8 +109,8 @@ def train_single_image_with_funiegan(opt):
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
         
         # Apply weight initialization
-        generator.apply(Weights_Normal)
-        discriminator.apply(Weights_Normal)
+        generator.apply(functions.weights_init)
+        discriminator.apply(functions.weights_init)
 
         # Initialize optimizers
         optimizer_G = optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
@@ -155,9 +154,11 @@ def train_single_image_with_funiegan(opt):
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
 
+            # Create input noise - ensure tensors have matching dimensions
             if prev.shape != noise_.shape:
+                # Resize prev to match noise_ dimensions
                 prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
-            # Create input noise
+            
             noise = opt.noise_amp * noise_ + prev
 
             # =================
@@ -190,8 +191,18 @@ def train_single_image_with_funiegan(opt):
             # =================
             generator.zero_grad()
             
-            # Generate fake image
-            fake = generator(noise)
+            # Generate fake image with same padding handling
+            h, w = noise.shape[2], noise.shape[3]
+            pad_h = (16 - h % 16) % 16
+            pad_w = (16 - w % 16) % 16
+            
+            if pad_h > 0 or pad_w > 0:
+                noise_padded = torch.nn.functional.pad(noise, (0, pad_w, 0, pad_h), mode='reflect')
+                fake = generator(noise_padded)
+                fake = fake[:, :, :h, :w]
+            else:
+                fake = generator(noise)
+                
             fake_pred = discriminator(fake, real)
 
             # Adversarial loss
@@ -312,7 +323,7 @@ def main():
             # Reconstruct generators
             Gs = []
             for i, state_dict in enumerate(checkpoint['Gs']):
-                G = GeneratorFunieGAN(opt.nc_im, opt.nfc, opt.ker_size, opt.num_layer, opt.stride).to(opt.device)
+                G = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
                 G.load_state_dict(state_dict)
                 G.eval()
                 Gs.append(G)
