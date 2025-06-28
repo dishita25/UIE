@@ -106,7 +106,7 @@ def train_single_image_with_funiegan(opt):
         print(f"Real image shape: {real.shape}")
 
         # Initialize networks
-        generator = GeneratorFunieGAN(opt.nc_im, opt.nfc, opt.ker_size, opt.num_layer, opt.stride).to(opt.device)
+        generator = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
         
         # Apply weight initialization
