@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from imresize import imresize
 import functions  
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
-from nets.commons import VGG19_PercepLoss
+from nets.commons import VGG19_PercepLoss, Weights_Normal
 
 
 def get_config():
@@ -110,8 +110,8 @@ def train_single_image_with_funiegan(opt):
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
         
         # Apply weight initialization
-        generator.apply(functions.weights_init)
-        discriminator.apply(functions.weights_init)
+        generator.apply(Weights_normal)
+        discriminator.apply(Weights_normal)
 
         # Initialize optimizers
         optimizer_G = optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
