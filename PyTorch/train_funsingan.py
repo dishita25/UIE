@@ -37,6 +37,7 @@ def get_config():
     parser.add_argument("--out", type=str, default="TrainedModels", help="Output directory")
     parser.add_argument("--manualSeed", type=int, default=None, help="Manual seed")
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
+    parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
     
     args = parser.parse_args()
     
