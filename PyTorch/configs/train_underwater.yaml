@@ -1,4 +1,5 @@
-input_dir: /kaggle/working/UIE/data/col.jpg
+input_dir: /kaggle/working/UIE/data
+input_name: col.jpg
 nfc_init: 64
 min_nfc_init: 32
 ker_size: 3
