@@ -391,3 +391,9 @@ def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 #    G_z = m_image(G_z)
                 count += 1
     return G_z
+
+def align_tensors(a, b):
+    h = min(a.shape[2], b.shape[2])
+    w = min(a.shape[3], b.shape[3])
+    return a[:, :, :h, :w], b[:, :, :h, :w]
+
