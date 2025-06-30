@@ -152,6 +152,7 @@ def train_single_image_with_funiegan(opt):
                 
                 # Calculate noise amplitude based on reconstruction error
                 z_prev = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, 'rec', m_noise, m_image, opt)
+                real, z_prev = functions.align_tensors(real, z_prev)
                 rmse = torch.sqrt(mse(real, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
