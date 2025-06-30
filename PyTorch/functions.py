@@ -125,27 +125,30 @@ def move_to_cpu(t):
     return t
 
 def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device):
-    #print real_data.size()
-    alpha = torch.rand(1, 1)
-    alpha = alpha.expand(real_data.size())
-    alpha = alpha.to(device)#cuda() #gpu) #if use_cuda else alpha
+    # Align spatial sizes to avoid mismatch
+    if real_data.shape[2:] != fake_data.shape[2:]:
+        h = min(real_data.shape[2], fake_data.shape[2])
+        w = min(real_data.shape[3], fake_data.shape[3])
+        real_data = real_data[:, :, :h, :w]
+        fake_data = fake_data[:, :, :h, :w]
+
+    alpha = torch.rand(1, 1, 1, 1, device=device)
+    alpha = alpha.expand_as(real_data)
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
-
-
-    interpolates = interpolates.to(device)#.cuda()
-    interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
+    interpolates.requires_grad_(True)
 
     disc_interpolates = netD(interpolates)
 
-    gradients = torch.autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),#.cuda(), #if use_cuda else torch.ones(
-                                  #disc_interpolates.size()),
-                              create_graph=True, retain_graph=True, only_inputs=True)[0]
-    #LAMBDA = 1
+    gradients = torch.autograd.grad(
+        outputs=disc_interpolates, inputs=interpolates,
+        grad_outputs=torch.ones_like(disc_interpolates),
+        create_graph=True, retain_graph=True, only_inputs=True
+    )[0]
+
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
-
+    
 def read_image(opt):
     x = img.imread('%s/%s' % (opt.input_dir,opt.input_name))
     x = np2torch(x,opt)
