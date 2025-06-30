@@ -356,3 +356,38 @@ def dilate_mask(mask,opt):
     mask = (mask-mask.min())/(mask.max()-mask.min())
     return mask
 
+def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
+    G_z = in_s
+    if len(Gs) > 0:
+        if mode == 'rand':
+            count = 0
+            pad_noise = int(((opt.ker_size-1)*opt.num_layer)/2)
+            if opt.mode == 'animation_train':
+                pad_noise = 0
+            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
+                if count == 0:
+                    z = functions.generate_noise([1, Z_opt.shape[2] - 2 * pad_noise, Z_opt.shape[3] - 2 * pad_noise], device=opt.device)
+                    z = z.expand(1, 3, z.shape[2], z.shape[3])
+                else:
+                    z = functions.generate_noise([opt.nc_z,Z_opt.shape[2] - 2 * pad_noise, Z_opt.shape[3] - 2 * pad_noise], device=opt.device)
+                z = m_noise(z)
+                G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
+                G_z = m_image(G_z)
+                z_in = noise_amp*z+G_z
+                G_z = G(z_in.detach(),G_z)
+                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                count += 1
+        if mode == 'rec':
+            count = 0
+            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
+                G_z = G_z[:, :, 0:real_curr.shape[2], 0:real_curr.shape[3]]
+                G_z = m_image(G_z)
+                z_in = noise_amp*Z_opt+G_z
+                G_z = G(z_in.detach(),G_z)
+                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                #if count != (len(Gs)-1):
+                #    G_z = m_image(G_z)
+                count += 1
+    return G_z
