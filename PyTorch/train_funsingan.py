@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-from imresize import imresize
+from imresize import imresize, resize_tensor_to_multiple_of_32
 import functions  
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
@@ -73,6 +73,7 @@ def train_single_image_with_funiegan(opt):
     # Read and preprocess image
     real_ = functions.read_image(opt)
     real = imresize(real_, opt.scale1, opt)
+    real_ = resize_tensor_to_multiple_of_32(real_, opt)
     reals = []
     reals = functions.creat_reals_pyramid(real, reals, opt)
     
