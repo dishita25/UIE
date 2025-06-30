@@ -373,6 +373,7 @@ def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 z = m_noise(z)
                 G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
                 G_z = m_image(G_z)
+                z, G_z = align_tensors(z, G_z)
                 z_in = noise_amp*z+G_z
                 G_z = G(z_in.detach())
                 G_z = imresize(G_z,1/opt.scale_factor,opt)
