@@ -38,6 +38,7 @@ def np2torch(x,opt):
     return x
 
 def torch2uint8(x):
+    x = x.detach()
     x = x[0,:,:,:]
     x = x.permute((1,2,0))
     x = 255*denorm(x)
