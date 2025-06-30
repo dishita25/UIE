@@ -181,7 +181,7 @@ def train_single_image_with_funiegan(opt):
             
             # Add gradient penalty if specified
             if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
-                gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.device)
+                gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.lambda_grad, opt.device)
                 loss_D += opt.lambda_grad * gradient_penalty
             
             loss_D.backward()
