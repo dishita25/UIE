@@ -285,3 +285,10 @@ def lanczos3(x):
 
 def linear(x):
     return (x + 1) * ((-1 <= x) & (x < 0)) + (1 - x) * ((0 <= x) & (x <= 1))
+
+def resize_tensor_to_multiple_of_32(tensor, opt):
+    h, w = tensor.shape[2], tensor.shape[3]
+    new_h = (h // 32) * 32
+    new_w = (w // 32) * 32
+    return imresize_to_shape(tensor, output_shape=[new_h, new_w], opt=opt)
+
