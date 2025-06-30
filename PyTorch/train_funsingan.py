@@ -245,7 +245,7 @@ def train_single_image_with_funiegan(opt):
                     
                     # Save real image for comparison
                     if epoch == 0:
-                        functions.save_image(real, f"{opt.outf}/real.png")
+                        save_image(real, f"{opt.outf}/real.png")
 
         # Store trained models
         Gs.append(generator.eval())
@@ -298,7 +298,7 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
         sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, 'rand', m_noise, m_image, opt)
         
         # Save sample
-        functions.save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
+        save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
     
     print(f"Samples saved to {samples_dir}")
 
