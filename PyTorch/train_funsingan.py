@@ -11,6 +11,7 @@ from imresize import imresize, resize_tensor_to_multiple_of_32
 import functions  
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
+from torchvision.utils import save_image
 
 
 def get_config():
@@ -240,7 +241,7 @@ def train_single_image_with_funiegan(opt):
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
                     fake_sample = generator(noise)
-                    functions.save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
+                    save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
                     
                     # Save real image for comparison
                     if epoch == 0:
