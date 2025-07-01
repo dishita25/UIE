@@ -33,7 +33,7 @@ parser.add_argument("--cfg_file", type=str, default="/kaggle/working/UIE/FUnie_H
 #parser.add_argument("--cfg_file", type=str, default="configs/train_ufo.yaml")
 parser.add_argument("--epoch", type=int, default=0, help="which epoch to start from")
 parser.add_argument("--num_epochs", type=int, default=50, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=8, help="size of the batches")
+parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
 parser.add_argument("--lr", type=float, default=0.0003, help="adam: learning rate")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of 1st order momentum")
 parser.add_argument("--b2", type=float, default=0.99, help="adam: decay of 2nd order momentum")
