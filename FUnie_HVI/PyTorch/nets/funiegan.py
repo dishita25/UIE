@@ -38,12 +38,11 @@ class UNetUp(nn.Module):
         x = torch.cat((x, skip_input), 1)
         return x
 
-channels=[36, 36, 72, 144, 288], heads=[1, 2, 4, 8, 16]
 
 class GeneratorFunieGAN(nn.Module):
     """ A 5-layer UNet-based generator as described in the paper
     """
-    def __init__(self, in_channels=3, out_channels=3):
+    def __init__(self, in_channels=3, out_channels=3, channels=[36, 36, 72, 144, 288], heads=[1, 2, 4, 8, 16]):
         super(GeneratorFunieGAN, self).__init__()
         # encoding layers
         self.down1 = UNetDown(in_channels, 32, bn=False)
