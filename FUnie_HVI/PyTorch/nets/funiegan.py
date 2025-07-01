@@ -29,13 +29,17 @@ class UNetUp(nn.Module):
         layers = [
             nn.ConvTranspose2d(in_size, out_size, 4, 2, 1, bias=False),
             nn.BatchNorm2d(out_size, momentum=0.8),
-            nn.ReLU(inplace=True),
+            # nn.ReLU(inplace=True),
         ]
         self.model = nn.Sequential(*layers)
+        self.up = nn.Conv2d(out_size*2,out_size,kernel_size=1,stride=1, padding=0, bias=False)
+        self.relu = nn.ReLU()
 
     def forward(self, x, skip_input):
         x = self.model(x)
         x = torch.cat((x, skip_input), 1)
+        x = self.up(x)
+        x = self.relu(x)
         return x
 
 
