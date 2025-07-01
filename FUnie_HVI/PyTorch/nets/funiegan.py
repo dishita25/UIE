@@ -78,10 +78,10 @@ class GeneratorFunieGAN(nn.Module):
         self.HVE_block3 = UNetDown(ch3, ch4)    # 72 to 144 channels, H/8 and W/8
         self.HVE_block4 = UNetDown(ch4, ch5)    # 144 to 288 channels, H/16 and W/16
         
-        self.HVD_block4 = UNetUp(ch5, int(ch4/2))      # 288 to 144 channels, H/8 and W/8
-        self.HVD_block3 = UNetUp(ch4, int(ch3/2))      # 288 to 72 channels, H/4 and W/4
-        self.HVD_block2 = UNetUp(ch3, int(ch2/2))      # 72 to 36 channels, H/2 and W/2
-        self.HVD_block1 = UNetUp(ch2, int(ch1/2))      # 36 to 36 channels, H and W
+        self.HVD_block4 = UNetUp(ch5, ch4)      # 288 to 144 channels, H/8 and W/8
+        self.HVD_block3 = UNetUp(ch4, ch3)      # 288 to 72 channels, H/4 and W/4
+        self.HVD_block2 = UNetUp(ch3, ch2)      # 72 to 36 channels, H/2 and W/2
+        self.HVD_block1 = UNetUp(ch2, ch1)      # 36 to 36 channels, H and W
         
         self.HVD_block0 = nn.Sequential(        # 36 to 2 channels, H and W remain same
             nn.ReplicationPad2d(1),
@@ -100,10 +100,10 @@ class GeneratorFunieGAN(nn.Module):
         self.IE_block3 = UNetDown(ch3, ch4)    # 72 to 144 channels, H/8 and W/8
         self.IE_block4 = UNetDown(ch4, ch5)    # 144 to 288 channels, H/16 and W/16
         
-        self.ID_block4 = UNetUp(ch5, int(ch4/2))      # 288 to 144 channels, H/8 and W/8
-        self.ID_block3 = UNetUp(ch4, int(ch3/2))      # 288 to 72 channels, H/4 and W/4
-        self.ID_block2 = UNetUp(ch3, int(ch2/2))      # 72 to 36 channels, H/2 and W/2
-        self.ID_block1 = UNetUp(ch2, int(ch1/2))      # 36 to 36 channels, H and W
+        self.ID_block4 = UNetUp(ch5, ch4)      # 288 to 144 channels, H/8 and W/8
+        self.ID_block3 = UNetUp(ch4, ch3)      # 288 to 72 channels, H/4 and W/4
+        self.ID_block2 = UNetUp(ch3, ch2)      # 72 to 36 channels, H/2 and W/2
+        self.ID_block1 = UNetUp(ch2, ch1)      # 36 to 36 channels, H and W
         
         self.ID_block0 =  nn.Sequential(       # 36 to 1 channel, H and W remain the same 
             nn.ReplicationPad2d(1),
