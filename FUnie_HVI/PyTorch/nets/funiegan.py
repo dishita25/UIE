@@ -38,6 +38,7 @@ class UNetUp(nn.Module):
         x = torch.cat((x, skip_input), 1)
         return x
 
+channels=[36, 36, 72, 144, 288], heads=[1, 2, 4, 8, 16]
 
 class GeneratorFunieGAN(nn.Module):
     """ A 5-layer UNet-based generator as described in the paper
@@ -64,7 +65,6 @@ class GeneratorFunieGAN(nn.Module):
         
         # *********Altered Architecture************
         
-        channels=[36, 36, 72, 144, 288], heads=[1, 2, 4, 8, 16]
         [ch1, ch2, ch3, ch4, ch5] = channels
         [head1, head2, head3, head4, head5] = heads
         
