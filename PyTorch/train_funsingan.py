@@ -17,8 +17,8 @@ from torchvision.utils import save_image
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
-    parser.add_argument("--input_dir", type=str, default="/kaggle/working/UIE/data", help="Input directory")
-    parser.add_argument("--input_name", type=str, default="col.jpg", help="Input image name")
+    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Unpaired/trainA", help="Input directory")
+    parser.add_argument("--input_name", type=str, default="nm_0up.jpg", help="Input image name")
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
     parser.add_argument("--min_nfc_init", type=int, default=32, help="Minimum number of filters")
     parser.add_argument("--ker_size", type=int, default=3, help="Kernel size")
