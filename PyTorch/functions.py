@@ -203,7 +203,7 @@ def adjust_scales2image(real_,opt):
     opt.scale1 = min(opt.max_size / max([real_.shape[2], real_.shape[3]]),1)  # min(250/max([real_.shape[0],real_.shape[1]]),1)
     real = imresize(real_, opt.scale1, opt)
     #opt.scale_factor = math.pow(opt.min_size / (real.shape[2]), 1 / (opt.stop_scale))
-    opt.scale_factor = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
+    opt.scale_factor_init = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
     scale2stop = math.ceil(math.log(min([opt.max_size, max([real_.shape[2], real_.shape[3]])]) / max([real_.shape[2], real_.shape[3]]),opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
     return real
@@ -216,7 +216,7 @@ def adjust_scales2image_SR(real_,opt):
     opt.scale1 = min(opt.max_size / max([real_.shape[2], real_.shape[3]]), 1)  # min(250/max([real_.shape[0],real_.shape[1]]),1)
     real = imresize(real_, opt.scale1, opt)
     #opt.scale_factor = math.pow(opt.min_size / (real.shape[2]), 1 / (opt.stop_scale))
-    opt.scale_factor = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
+    opt.scale_factor_init = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
     scale2stop = int(math.log(min(opt.max_size, max(real_.shape[2], real_.shape[3])) / max(real_.shape[0], real_.shape[3]), opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
     return real
@@ -224,7 +224,7 @@ def adjust_scales2image_SR(real_,opt):
 def creat_reals_pyramid(real,reals,opt):
     real = real[:,0:3,:,:]
     for i in range(0,opt.stop_scale+1,1):
-        scale = math.pow(opt.scale_factor,opt.stop_scale-i)
+        scale = math.pow(opt.scale_factor_init,opt.stop_scale-i)
         curr_real = imresize(real,scale,opt)
         reals.append(curr_real)
     return reals
@@ -289,8 +289,8 @@ def post_config(opt):
     opt.noise_amp_init = opt.noise_amp
     opt.nfc_init = opt.nfc
     opt.min_nfc_init = opt.min_nfc
-    opt.scale_factor_init = opt.scale_factor
-    opt.out_ = 'TrainedModels/%s/scale_factor=%f/' % (opt.input_name[:-4], opt.scale_factor)
+    opt.scale_factor_init = opt.scale_factor_init
+    opt.out_ = 'TrainedModels/%s/scale_factor=%f/' % (opt.input_name[:-4], opt.scale_factor_init)
     if opt.mode == 'SR':
         opt.alpha = 100
 
@@ -376,7 +376,7 @@ def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 z, G_z = align_tensors(z, G_z)
                 z_in = noise_amp*z+G_z
                 G_z = G(z_in.detach())
-                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
                 G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
                 count += 1
         if mode == 'rec':
@@ -387,7 +387,7 @@ def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 Z_opt, G_z = align_tensors(Z_opt, G_z)
                 z_in = noise_amp*Z_opt+G_z
                 G_z = G(z_in.detach())
-                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
                 G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
                 #if count != (len(Gs)-1):
                 #    G_z = m_image(G_z)
