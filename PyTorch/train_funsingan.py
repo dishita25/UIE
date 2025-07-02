@@ -25,7 +25,7 @@ def get_config():
     parser.add_argument("--num_layer", type=int, default=5, help="Number of layers")
     parser.add_argument("--stride", type=int, default=1, help="Stride")
     parser.add_argument("--noise_amp_init", type=float, default=0.1, help="Initial noise amplitude")
-    parser.add_argument("--scale_factor_init", type=float, default=0.75, help="Scale factor for pyramid")
+    parser.add_argument("--scale_factor", type=float, default=0.75, help="Scale factor for pyramid")
     parser.add_argument("--scale1", type=float, default=1.0, help="Initial scale")
     parser.add_argument("--stop_scale", type=int, default=5, help="Stop scale")
     parser.add_argument("--lr_g", type=float, default=0.0005, help="Generator learning rate")
