@@ -193,7 +193,7 @@ for epoch in range(epoch, num_epochs):
         loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + args.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
         loss_rgb = (L1_loss(imgs_fake, imgs_good_gt) + D_loss(imgs_fake, imgs_good_gt) + E_loss(imgs_fake, imgs_good_gt) + args.P_weight * P_loss(imgs_fake, imgs_good_gt)[0])
         
-        # Total loss (Section 3.2.1 in the paper)
+        # Total loss
         loss_G = (loss_GAN + lambda_1 * loss_1  + lambda_con * loss_con ) + (loss_rgb + args.HVI_weight * loss_hvi)
         loss_G.backward()
         # # Gradient clipping
