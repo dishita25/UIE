@@ -224,7 +224,7 @@ def train_single_image_with_funiegan(opt):
             loss_vgg = perceptual(fake, real)
             
             # Total generator loss
-            loss_G = loss_adv + 10 * loss_l1 + 6 * loss_vgg
+            loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
             
             loss_G.backward()
             optimizer_G.step()
