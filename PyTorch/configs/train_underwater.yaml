@@ -1,8 +1,5 @@
-
-dataset_name: "EUVP" 
-dataset_path: "/kaggle/input/euvp-dataset/EUVP/Paired"
-#input_dir: /kaggle/working/UIE/data
-#input_name: col.jpg
+input_dir: /kaggle/input/euvp-dataset/EUVP/Unpaired/trainA
+input_name: nm_0up.jpg
 nfc_init: 64
 min_nfc_init: 32
 ker_size: 3
