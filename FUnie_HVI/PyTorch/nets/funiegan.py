@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from nets.HVI_transform import RGB_HVI
 from nets.LCA import *
+import matplotlib.pyplot as plt
 
 
 
@@ -156,11 +157,13 @@ class GeneratorFunieGAN(nn.Module):
         
         # **********New Forward***************
         print("Original RGB image")
-        print(x.data)
+        plt.imshow(x.numpy()[0])
+
         hvi = self.trans.HVIT(x)        
         i = hvi[:, 2, :, :].unsqueeze(1)
         print("HVI image after transform")
-        print(hvi.data)
+        plt.imshow(hvi.numpy()[0])
+        plt.show()
         
         # Level 0: Initial processing
         hv_enc0 = self.HVE_block0(hvi)          # HV: (batch, 3, H, W) -> (batch, 36, H, W)
