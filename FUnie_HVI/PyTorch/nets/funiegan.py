@@ -160,7 +160,8 @@ class GeneratorFunieGAN(nn.Module):
         print("x shape:", x.shape)
         print("Original RGB image")
         plt.imshow(np.transpose(x[0].cpu().numpy(), (1,2,0)))
-
+        plt.show()
+        
         hvi = self.trans.HVIT(x)        
         i = hvi[:, 2, :, :].unsqueeze(1)
         print("HVI image after transform")
