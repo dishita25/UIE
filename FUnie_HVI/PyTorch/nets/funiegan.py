@@ -157,15 +157,15 @@ class GeneratorFunieGAN(nn.Module):
         # return output_rgb
         
         # **********New Forward***************
-        print("Original RGB image")
-        plt.imshow(np.transpose(x[0].cpu().numpy(), (1,2,0)))
-        plt.show()
+        # print("Original RGB image")
+        # plt.imshow(np.transpose(x[0].cpu().numpy(), (1,2,0)))
+        # plt.show()
         
         hvi = self.trans.HVIT(x)        
         i = hvi[:, 2, :, :].unsqueeze(1)
-        print("HVI image after transform")
-        plt.imshow(np.transpose(hvi[0].cpu().detach().numpy(), (1,2,0)))
-        plt.show()
+        # print("HVI image after transform")
+        # plt.imshow(np.transpose(hvi[0].cpu().detach().numpy(), (1,2,0)))
+        # plt.show()
         
         # Level 0: Initial processing
         hv_enc0 = self.HVE_block0(hvi)          # HV: (batch, 3, H, W) -> (batch, 36, H, W)
