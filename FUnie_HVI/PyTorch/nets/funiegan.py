@@ -157,7 +157,6 @@ class GeneratorFunieGAN(nn.Module):
         # return output_rgb
         
         # **********New Forward***************
-        print("x shape:", x.shape)
         print("Original RGB image")
         plt.imshow(np.transpose(x[0].cpu().numpy(), (1,2,0)))
         plt.show()

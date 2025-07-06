@@ -43,6 +43,8 @@ parser.add_argument('--D_weight',  type=float, default=0.5)
 parser.add_argument('--E_weight',  type=float, default=50.0)
 parser.add_argument('--P_weight',  type=float, default=1e-2)
 parser.add_argument('--HVI_weight', type=float, default=1.0)
+parser.add_argument('--threads', type=int, default=16, help='number of threads for dataloader to use')
+parser.add_argument('--shuffle', type=bool, default=True)
 
 args = parser.parse_args()
 
@@ -124,11 +126,19 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=lr_rate, betas=(lr
 
 
 ## Data pipeline
+# transforms_ = [
+#     transforms.Resize((img_height, img_width), Image.BICUBIC),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+# ]
+from torchvision.transforms import ToTensor, RandomCrop, RandomHorizontalFlip, RandomVerticalFlip
+
 transforms_ = [
-    transforms.Resize((img_height, img_width), Image.BICUBIC),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-]
+        RandomCrop((256, 256)),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        ToTensor(),
+    ]
 
 dataloader = DataLoader(
     GetTrainingPairs(dataset_path, dataset_name, transforms_=transforms_),
