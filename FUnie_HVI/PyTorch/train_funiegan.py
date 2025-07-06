@@ -134,7 +134,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=lr_rate, betas=(lr
 from torchvision.transforms import ToTensor, RandomCrop, RandomHorizontalFlip, RandomVerticalFlip
 
 transforms_ = [
-        RandomCrop((256, 256)),
+        # RandomCrop((256, 256)),
         RandomHorizontalFlip(),
         RandomVerticalFlip(),
         ToTensor(),
