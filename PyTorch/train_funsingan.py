@@ -208,32 +208,34 @@ def train_single_image_with_funiegan(opt):
                 
             fake_pred = discriminator(fake, real)
 
-            # if fake.shape[2:] != real.shape[2:]:
-            #     diff_h = real.shape[2] - fake.shape[2]
-            #     diff_w = real.shape[3] - fake.shape[3]
-
-            #     pad_top = diff_h // 2 if diff_h > 0 else 0
-            #     pad_bottom = diff_h - pad_top if diff_h > 0 else 0
-            #     pad_left = diff_w // 2 if diff_w > 0 else 0
-            #     pad_right = diff_w - pad_left if diff_w > 0 else 0
-
-            #     fake = nn.functional.pad(fake, (pad_left, pad_right, pad_top, pad_bottom), mode='reflect')
-
-            #     diff_h = fake.shape[2] - real.shape[2]
-            #     diff_w = fake.shape[3] - real.shape[3]
-
-            #     pad_top = diff_h // 2 if diff_h > 0 else 0
-            #     pad_bottom = diff_h - pad_top if diff_h > 0 else 0
-            #     pad_left = diff_w // 2 if diff_w > 0 else 0
-            #     pad_right = diff_w - pad_left if diff_w > 0 else 0
-
-            #     real = nn.functional.pad(real, (pad_left, pad_right, pad_top, pad_bottom), mode='reflect')
-
             if fake.shape[2:] != real.shape[2:]:
-                h = min(fake.shape[2], real.shape[2])
-                w = min(fake.shape[3], real.shape[3])
-                fake = fake[:, :, :h, :w]
-                real = real[:, :, :h, :w]
+                h_fake, w_fake = fake.shape[2], fake.shape[3]
+                h_real, w_real = real.shape[2], real.shape[3]
+                target_h = max(h_fake, h_real)
+                target_w = max(w_fake, w_real)
+
+                def pad_to_target(x, target_h, target_w):
+                    h, w = x.shape[2], x.shape[3]
+                    pad_h = target_h - h
+                    pad_w = target_w - w
+                    pad_top = pad_h // 2
+                    pad_bottom = pad_h - pad_top
+                    pad_left = pad_w // 2
+                    pad_right = pad_w - pad_left
+                    return F.pad(x, (pad_left, pad_right, pad_top, pad_bottom), mode='constant', value=0)
+                
+
+                fake = pad_to_target(fake, target_h, target_w)
+                real = pad_to_target(real, target_h, target_w)
+
+
+    
+
+            # if fake.shape[2:] != real.shape[2:]:
+            #     h = min(fake.shape[2], real.shape[2])
+            #     w = min(fake.shape[3], real.shape[3])
+            #     fake = fake[:, :, :h, :w]
+            #     real = real[:, :, :h, :w]
 
             # Adversarial loss
             loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
