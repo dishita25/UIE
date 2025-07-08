@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 from imresize import imresize, resize_tensor_to_multiple_of_32
 import functions  
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
