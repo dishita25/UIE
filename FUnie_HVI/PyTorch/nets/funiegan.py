@@ -48,7 +48,7 @@ class UNetUp(nn.Module):
 class GeneratorFunieGAN(nn.Module):
     """ A 5-layer UNet-based generator as described in the paper
     """
-    def __init__(self, in_channels=3, out_channels=3, channels=[36, 36, 72, 144, 288], heads=[1, 2, 4, 8, 16]):
+    def __init__(self, in_channels=3, out_channels=3, channels=[36, 36, 72, 144, 288, 576], heads=[1, 2, 4, 8, 16, 32]):
         super(GeneratorFunieGAN, self).__init__()
         # encoding layers
         self.down1 = UNetDown(in_channels, 32, bn=False)
@@ -70,8 +70,8 @@ class GeneratorFunieGAN(nn.Module):
         
         # *********Altered Architecture************
         
-        [ch1, ch2, ch3, ch4, ch5] = channels
-        [head1, head2, head3, head4, head5] = heads
+        [ch1, ch2, ch3, ch4, ch5, ch6] = channels
+        [head1, head2, head3, head4, head5, head6] = heads
         
         # HV_ways
         self.HVE_block0 = nn.Sequential(        # 3 to 36 channels, H and W remain same
@@ -83,7 +83,9 @@ class GeneratorFunieGAN(nn.Module):
         self.HVE_block2 = UNetDown(ch2, ch3)    # 36 to 72 channels, H/4 and W/4
         self.HVE_block3 = UNetDown(ch3, ch4)    # 72 to 144 channels, H/8 and W/8
         self.HVE_block4 = UNetDown(ch4, ch5)    # 144 to 288 channels, H/16 and W/16
+        self.HVE_block5 = UNetDown(ch5, ch6)    # 288 to 576 channels, H/32 and W/32
         
+        self.HVD_block5 = UNetUp(ch6, ch5)      # 576 to 288 channels, H/16 amd W/16
         self.HVD_block4 = UNetUp(ch5, ch4)      # 288 to 144 channels, H/8 and W/8
         self.HVD_block3 = UNetUp(ch4, ch3)      # 288 to 72 channels, H/4 and W/4
         self.HVD_block2 = UNetUp(ch3, ch2)      # 72 to 36 channels, H/2 and W/2
@@ -105,9 +107,11 @@ class GeneratorFunieGAN(nn.Module):
         self.IE_block2 = UNetDown(ch2, ch3)    # 36 to 72 channels, H/4 and W/4
         self.IE_block3 = UNetDown(ch3, ch4)    # 72 to 144 channels, H/8 and W/8
         self.IE_block4 = UNetDown(ch4, ch5)    # 144 to 288 channels, H/16 and W/16
+        self.IE_block5 = UNetDown(ch5, ch6)    # 288 to 576 channels, H/32 and W/32
         
+        self.ID_block5 = UNetUp(ch6, ch5)      # 576 to 288 channels, H/16 amd W/16        
         self.ID_block4 = UNetUp(ch5, ch4)      # 288 to 144 channels, H/8 and W/8
-        self.ID_block3 = UNetUp(ch4, ch3)      # 288 to 72 channels, H/4 and W/4
+        self.ID_block3 = UNetUp(ch4, ch3)      # 144 to 72 channels, H/4 and W/4
         self.ID_block2 = UNetUp(ch3, ch2)      # 72 to 36 channels, H/2 and W/2
         self.ID_block1 = UNetUp(ch2, ch1)      # 36 to 36 channels, H and W
         
@@ -121,22 +125,26 @@ class GeneratorFunieGAN(nn.Module):
         self.HV_LCA2 = HV_LCA(ch3, head3)
         self.HV_LCA3 = HV_LCA(ch4, head4)
         self.HV_LCA4 = HV_LCA(ch5, head5)
+        self.HV_LCA5 = HV_LCA(ch6, head6)
         # Decoder LCA - HV
-        self.HV_LCA5 = HV_LCA(ch5, head5)
-        self.HV_LCA6 = HV_LCA(ch4, head4)
-        self.HV_LCA7 = HV_LCA(ch3, head3)
-        self.HV_LCA8 = HV_LCA(ch2, head2)
+        self.HV_LCA6 = HV_LCA(ch6, head6)
+        self.HV_LCA7 = HV_LCA(ch5, head5)
+        self.HV_LCA8 = HV_LCA(ch4, head4)
+        self.HV_LCA9 = HV_LCA(ch3, head3)
+        self.HV_LCA10 = HV_LCA(ch2, head2)
         
         # Encoder LCA - I
         self.I_LCA1 = I_LCA(ch2, head2)
         self.I_LCA2 = I_LCA(ch3, head3)
         self.I_LCA3 = I_LCA(ch4, head4)
         self.I_LCA4 = I_LCA(ch5, head5)
+        self.I_LCA5 = I_LCA(ch6, head6)
         # Decoder LCA - I
-        self.I_LCA5 = I_LCA(ch5, head5)
-        self.I_LCA6 = I_LCA(ch4, head4)
-        self.I_LCA7 = I_LCA(ch3, head3)
-        self.I_LCA8 = I_LCA(ch2, head2)
+        self.I_LCA6 = I_LCA(ch6, head6)
+        self.I_LCA7 = I_LCA(ch5, head5)
+        self.I_LCA8 = I_LCA(ch4, head4)
+        self.I_LCA9 = I_LCA(ch3, head3)
+        self.I_LCA10 = I_LCA(ch2, head2)
         
         self.trans = RGB_HVI()  # To convert from RGB to HVI
 
@@ -195,44 +203,59 @@ class GeneratorFunieGAN(nn.Module):
         hv_enc3 = self.HV_LCA3(hv_enc3, i_enc3)
         i_enc3 = self.I_LCA3(i_enc3, hv_enc3)
         
-        # Level 4: Fourth downsampling (bottleneck)
+        # Level 4: Fourth downsampling 
         hv_enc4 = self.HVE_block4(hv_enc3)      # HV: (batch, 288, H/16, W/16)
         i_enc4 = self.IE_block4(i_enc3)         # I: (batch, 288, H/16, W/16)
         
-        # Cross-attention at bottleneck
-        hv_bottleneck = self.HV_LCA4(hv_enc4, i_enc4)
-        i_bottleneck = self.I_LCA4(i_enc4, hv_enc4)
+        # Cross-attention at level 4
+        hv_enc4 = self.HV_LCA4(hv_enc4, i_enc4)
+        i_enc4 = self.I_LCA4(i_enc4, hv_enc4)
         
+        # Level 5: Fifth downsampling (bottleneck)
+        hv_enc5 = self.HVE_block5(hv_enc4)      # HV: (batch, 576, H/32, W/32)
+        i_enc5 = self.IE_block5(i_enc4)         # I: (batch, 576, H/32, W/32)
+        
+        # Cross-attention at bottleneck
+        hv_bottleneck = self.HV_LCA5(hv_enc5, i_enc5)
+        i_bottleneck = self.I_LCA5(i_enc5, hv_enc5)
         
         # Bottleneck cross-attention
-        hv_dec4 = self.HV_LCA5(hv_bottleneck, i_bottleneck)
-        i_dec4 = self.I_LCA5(i_bottleneck, hv_bottleneck)
+        hv_dec5 = self.HV_LCA6(hv_bottleneck, i_bottleneck)
+        i_dec5 = self.I_LCA6(i_bottleneck, hv_bottleneck)
         
-        # Level 4: First upsampling
-        hv_dec3 = self.HVD_block4(hv_dec4, hv_enc3)    # With skip connection
-        i_dec3 = self.ID_block4(i_dec4, i_enc3)        # With skip connection
+        # Level 5: First upsampling
+        hv_dec4 = self.HVD_block5(hv_dec5, hv_enc4)     # With skip connection
+        i_dec4 = self.ID_block5(i_dec5, i_enc4)         # With skip connection
+        
+        # Cross-attentioncat level 4
+        hv_dec4 = self.HV_LCA7(hv_dec4, i_dec4)
+        i_dec4 = self.I_LCA7(i_dec4, hv_dec4)
+        
+        # Level 4: Second upsampling
+        hv_dec3 = self.HVD_block4(hv_dec4, hv_enc3)     # With skip commection
+        i_dec3 = self.ID_block4(i_dec4, i_enc3)         # With skip connection
         
         # Cross-attention at level 3
-        hv_dec3 = self.HV_LCA6(hv_dec3, i_dec3)
-        i_dec3 = self.I_LCA6(i_dec3, hv_dec3)
+        hv_dec3 = self.HV_LCA8(hv_dec3, i_dec3)
+        i_dec3 = self.I_LCA8(i_dec3, hv_dec3)
         
-        # Level 3: Second upsampling
-        hv_dec2 = self.HVD_block3(hv_dec3, hv_enc2)    # With skip connection
-        i_dec2 = self.ID_block3(i_dec3, i_enc2)        # With skip connection
+        # Level 3: Third upsampling
+        hv_dec2 = self.HVD_block3(hv_dec3, hv_dec2)     # With skip connection
+        i_dec2 = self.ID_block3(i_dec3, i_enc2)         # With skip connection
         
         # Cross-attention at level 2
-        hv_dec2 = self.HV_LCA7(hv_dec2, i_dec2)
-        i_dec2 = self.I_LCA7(i_dec2, hv_dec2)
+        hv_dec2 = self.HV_LCA9(hv_dec2, i_dec2)
+        i_dec2 = self.I_LCA9(i_dec2, hv_dec2)
         
-        # Level 2: Third upsampling
+        # Level 2: Forth upsampling
         hv_dec1 = self.HVD_block2(hv_dec2, hv_enc1)    # With skip connection
         i_dec1 = self.ID_block2(i_dec2, i_enc1)        # With skip connection
         
         # Cross-attention at level 1
-        hv_dec1 = self.HV_LCA8(hv_dec1, i_dec1)
-        i_dec1 = self.I_LCA8(i_dec1, hv_dec1)
+        hv_dec1 = self.HV_LCA10(hv_dec1, i_dec1)
+        i_dec1 = self.I_LCA10(i_dec1, hv_dec1)
         
-        # Level 1: Fourth upsampling
+        # Level 1: Fifth upsampling
         hv_dec0 = self.HVD_block1(hv_dec1, hv_enc0)    # With skip connection
         i_dec0 = self.ID_block1(i_dec1, i_enc0)        # With skip connection
         
