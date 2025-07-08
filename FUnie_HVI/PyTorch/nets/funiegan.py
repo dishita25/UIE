@@ -240,7 +240,7 @@ class GeneratorFunieGAN(nn.Module):
         i_dec3 = self.I_LCA8(i_dec3, hv_dec3)
         
         # Level 3: Third upsampling
-        hv_dec2 = self.HVD_block3(hv_dec3, hv_dec2)     # With skip connection
+        hv_dec2 = self.HVD_block3(hv_dec3, hv_enc2)     # With skip connection
         i_dec2 = self.ID_block3(i_dec3, i_enc2)         # With skip connection
         
         # Cross-attention at level 2
