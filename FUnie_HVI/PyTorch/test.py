@@ -26,7 +26,7 @@ parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/
 parser.add_argument("--sample_dir", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/output/")
 parser.add_argument("--enhanced_only", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/enhanced_only/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/working/checkpoints/FunieGAN/EUVP/generator_1.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/checkpoints/FunieGAN/EUVP/generator_0.pth")
 opt = parser.parse_args()
 
 ## checks
@@ -56,7 +56,8 @@ print ("Loaded model from %s" % (opt.model_path))
 img_width, img_height, channels = 256, 256, 3
 transforms_ = [transforms.Resize((img_height, img_width), Image.BICUBIC),
                transforms.ToTensor(),
-               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),]
+            #    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+               ]
 transform = transforms.Compose(transforms_)
 
 
