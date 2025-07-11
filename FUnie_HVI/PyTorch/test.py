@@ -22,7 +22,7 @@ import torchvision.transforms as transforms
 
 ## options
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/GTr")
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
 parser.add_argument("--sample_dir", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/output/")
 parser.add_argument("--enhanced_only", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/enhanced_only/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
