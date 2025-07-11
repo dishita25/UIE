@@ -26,7 +26,7 @@ parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/
 parser.add_argument("--sample_dir", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/output/")
 parser.add_argument("--enhanced_only", type=str, default="/kaggle/working/UIE/FUnie_HVI/data/enhanced_only/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/working/checkpoints/FunieGAN/EUVP/generator_0.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/checkpoints/FunieGAN/EUVP/generator_9.pth")
 opt = parser.parse_args()
 
 ## checks
@@ -77,7 +77,7 @@ for path in test_files:
     save_image(img_sample, join(opt.sample_dir, basename(path)), normalize=True) # Combined 
     save_image(gen_img.data, join(opt.enhanced_only, basename(path)), normalize=True) # Only the enhanaced one
 
-    print ("Tested: %s" % path)
+    # print ("Tested: %s" % path)
 
 ## run-time    
 if (len(times) > 1):
