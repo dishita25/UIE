@@ -32,6 +32,7 @@ opt = parser.parse_args()
 ## checks
 assert exists(opt.model_path), "model not found"
 os.makedirs(opt.sample_dir, exist_ok=True)
+os.makedirs(opt.enhanced_only, exist_ok=True)
 is_cuda = torch.cuda.is_available()
 Tensor = torch.cuda.FloatTensor if is_cuda else torch.FloatTensor 
 
