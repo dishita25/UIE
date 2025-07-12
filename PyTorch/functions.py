@@ -14,6 +14,7 @@ import os
 import random
 from sklearn.cluster import KMeans
 from imresize import imresize
+import torch.nn.functional as F
 
 # custom weights initialization called on netG and netD
 
@@ -394,8 +395,18 @@ def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 count += 1
     return G_z
 
-def align_tensors(a, b):
+# def align_tensors(a, b):
+#     h = min(a.shape[2], b.shape[2])
+#     w = min(a.shape[3], b.shape[3])
+#     return a[:, :, :h, :w], b[:, :, :h, :w]
+
+def align_tensors(a, b, mode='bilinear', align_corners=False):
+    # Get minimum height and width
     h = min(a.shape[2], b.shape[2])
     w = min(a.shape[3], b.shape[3])
-    return a[:, :, :h, :w], b[:, :, :h, :w]
+
+    a_resized = F.interpolate(a, size=(h, w), mode=mode, align_corners=align_corners if mode in ['linear', 'bilinear', 'bicubic', 'trilinear'] else None)
+    b_resized = F.interpolate(b, size=(h, w), mode=mode, align_corners=align_corners if mode in ['linear', 'bilinear', 'bicubic', 'trilinear'] else None)
+
+    return a_resized, b_resized
 

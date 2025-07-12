@@ -213,8 +213,16 @@ def train_single_image_with_funiegan(opt):
             if fake.shape[2:] != real.shape[2:]:
                 h = min(fake.shape[2], real.shape[2])
                 w = min(fake.shape[3], real.shape[3])
-                fake = fake[:, :, :h, :w]
-                real = real[:, :, :h, :w]
+                fake = F.interpolate(fake, size=(h, w), mode='bilinear', align_corners=False)
+                real = F.interpolate(real, size=(h, w), mode='bilinear', align_corners=False)
+
+
+
+            # if fake.shape[2:] != real.shape[2:]:
+            #     h = min(fake.shape[2], real.shape[2])
+            #     w = min(fake.shape[3], real.shape[3])
+            #     fake = fake[:, :, :h, :w]
+            #     real = real[:, :, :h, :w]
 
             # Adversarial loss
             loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
