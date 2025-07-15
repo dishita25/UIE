@@ -194,35 +194,14 @@ def train_single_image_with_funiegan(opt):
             # Train Generator
             # =================
             generator.zero_grad()
-            
-            # Generate fake image with same padding handling
-            h, w = noise.shape[2], noise.shape[3]
-            pad_h = (16 - h % 16) % 16
-            pad_w = (16 - w % 16) % 16
-            
-            if pad_h > 0 or pad_w > 0:
-                noise_padded = torch.nn.functional.pad(noise, (0, pad_w, 0, pad_h), mode='reflect')
-                fake = generator(noise_padded)
-                fake = fake[:, :, :h, :w]
-            else:
-                fake = generator(noise)
-                
-            fake_pred = discriminator(fake, real)
+        
 
 
             if fake.shape[2:] != real.shape[2:]:
                 h = min(fake.shape[2], real.shape[2])
                 w = min(fake.shape[3], real.shape[3])
-                fake = F.interpolate(fake, size=(h, w), mode='bilinear', align_corners=False)
-                real = F.interpolate(real, size=(h, w), mode='bilinear', align_corners=False)
-
-
-
-            # if fake.shape[2:] != real.shape[2:]:
-            #     h = min(fake.shape[2], real.shape[2])
-            #     w = min(fake.shape[3], real.shape[3])
-            #     fake = fake[:, :, :h, :w]
-            #     real = real[:, :, :h, :w]
+                fake = fake[:, :, :h, :w]
+                real = real[:, :, :h, :w]
 
             # Adversarial loss
             loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
