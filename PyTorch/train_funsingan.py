@@ -18,8 +18,8 @@ from torchvision.utils import save_image
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
-    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Unpaired/trainA", help="Input directory")
-    parser.add_argument("--input_name", type=str, default="nm_0up.jpg", help="Input image name")
+    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Input directory")
+    parser.add_argument("--input_name", type=str, default="264286_00007889.jpg", help="Input image name")
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
     parser.add_argument("--min_nfc_init", type=int, default=32, help="Minimum number of filters")
     parser.add_argument("--ker_size", type=int, default=3, help="Kernel size")
@@ -41,6 +41,7 @@ def get_config():
     parser.add_argument("--manualSeed", type=int, default=None, help="Manual seed")
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
     parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
+    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
     
     args = parser.parse_args()
     
@@ -131,15 +132,28 @@ def train_single_image_with_funiegan(opt):
         m_image = nn.ZeroPad2d(pad_noise)
 
         # Initialize noise
-        fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
-        z_opt = torch.full_like(fixed_noise, 0)
+
+        # Initialize noise
+        # MODIFIED: If z_opt should also be based on the blur image
+        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+        z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
         z_opt = m_noise(z_opt)
+
+        # fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        # z_opt = torch.full_like(fixed_noise, 0)
+        # z_opt = m_noise(z_opt)
 
         # Training loop
         for epoch in range(opt.niter):
-            # Generate noise
-            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+            # Generate noise (this is the random input noise for the generator)
+            # MODIFIED: Use blur input for the random noise component
+            noise_ = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
             noise_ = m_noise(noise_)
+
+        # for epoch in range(opt.niter):
+        #     # Generate noise
+        #     noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        #     noise_ = m_noise(noise_)
 
             # Handle first scale differently
             if scale_num == 0:

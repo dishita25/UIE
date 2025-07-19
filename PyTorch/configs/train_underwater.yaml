@@ -1,5 +1,5 @@
-input_dir: /kaggle/input/euvp-dataset/EUVP/Unpaired/trainA
-input_name: nm_0up.jpg
+input_dir: /kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB
+input_name: /kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB/264286_00007889.jpg
 nfc_init: 64
 min_nfc_init: 32
 ker_size: 3
@@ -17,3 +17,4 @@ nc_z: 3
 nc_im: 3
 lambda_grad: 0.1
 not_cuda: false
+blur_image_path: /kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA/264286_00007889.jpg
