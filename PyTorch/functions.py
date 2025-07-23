@@ -512,7 +512,7 @@ def generate_blur_input(size, num_samp=1, device='cuda', blur_image_path=None, s
         # Resize to target H, W
         # Use bilinear interpolation for image resizing
         blur_tensor = F.interpolate(blur_tensor, size=(target_h, target_w), mode='bilinear', align_corners=False)
-        
+
         # Expand to match number of samples (batch size)
         if num_samp > 1:
             blur_tensor = blur_tensor.expand(num_samp, -1, -1, -1)
@@ -529,6 +529,9 @@ def generate_blur_input(size, num_samp=1, device='cuda', blur_image_path=None, s
         
         # Normalize to [-1, 1] to match the original noise range used by the GAN
         blur_tensor = norm(blur_tensor)
+        
+        print(f"Shape: {blur_tensor.shape}")
+        
         
         return blur_tensor
         

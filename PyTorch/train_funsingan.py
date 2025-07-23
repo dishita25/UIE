@@ -140,7 +140,7 @@ def train_single_image_with_funiegan(opt):
         # z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
         # z_opt = m_noise(z_opt)
 
-        fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
         z_opt = torch.full_like(fixed_noise, 0)
         z_opt = m_noise(z_opt)
 
@@ -149,7 +149,7 @@ def train_single_image_with_funiegan(opt):
             # Generate noise (this is the random input noise for the generator)
             # MODIFIED: Use blur input for the random noise component
             #change to blur_input later
-            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device) #blur_image_path=opt.blur_image_path)
+            noise_ = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
             noise_ = m_noise(noise_)
 
         # for epoch in range(opt.niter):
