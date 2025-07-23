@@ -48,7 +48,7 @@ class UNetUp(nn.Module):
         layers = [
             nn.ConvTranspose2d(in_size, out_size, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(out_size),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
         ]
         if dropout:
             layers.append(nn.Dropout(dropout))
