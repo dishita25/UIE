@@ -44,6 +44,7 @@ def get_config():
     parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
     
     args = parser.parse_args()
+    #Comment
     
     # Try to load config file if it exists
     if os.path.exists(args.config):
@@ -135,19 +136,20 @@ def train_single_image_with_funiegan(opt):
 
         # Initialize noise
         # MODIFIED: If z_opt should also be based on the blur image
-        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
-        z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
-        z_opt = m_noise(z_opt)
-
-        # fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
-        # z_opt = torch.full_like(fixed_noise, 0)
+        # fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+        # z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
         # z_opt = m_noise(z_opt)
+
+        fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        z_opt = torch.full_like(fixed_noise, 0)
+        z_opt = m_noise(z_opt)
 
         # Training loop
         for epoch in range(opt.niter):
             # Generate noise (this is the random input noise for the generator)
             # MODIFIED: Use blur input for the random noise component
-            noise_ = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+            #change to blur_input later
+            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
             noise_ = m_noise(noise_)
 
         # for epoch in range(opt.niter):

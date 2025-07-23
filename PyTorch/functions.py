@@ -75,17 +75,7 @@
 #     # inp = std*
 #     return inp
 
-# def generate_noise(size,num_samp=1,device='cuda',type='gaussian', scale=1):
-#     if type == 'gaussian':
-#         noise = torch.randn(num_samp, size[0], round(size[1]/scale), round(size[2]/scale), device=device)
-#         noise = upsampling(noise,size[1], size[2])
-#     if type =='gaussian_mixture':
-#         noise1 = torch.randn(num_samp, size[0], size[1], size[2], device=device)+5
-#         noise2 = torch.randn(num_samp, size[0], size[1], size[2], device=device)
-#         noise = noise1+noise2
-#     if type == 'uniform':
-#         noise = torch.randn(num_samp, size[0], size[1], size[2], device=device)
-#     return noise
+
 
 # def plot_learning_curves(G_loss,D_loss,epochs,label1,label2,name):
 #     fig,ax = plt.subplots(1)
@@ -478,6 +468,7 @@ def convert_image_np_2d(inp):
     # inp = std*
     return inp 
 
+
 # MODIFIED: Function to generate blurry image instead of noise
 def generate_blur_input(size, num_samp=1, device='cuda', blur_image_path=None, scale=1):
     """
@@ -550,6 +541,7 @@ def generate_noise(size,num_samp=1,device='cuda',type='gaussian', scale=1):
     if type == 'gaussian':
         noise = torch.randn(num_samp, size[0], round(size[1]/scale), round(size[2]/scale), device=device)
         noise = upsampling(noise,size[1], size[2])
+        print(f"Shape: {noise.shape}")
     if type =='gaussian_mixture':
         noise1 = torch.randn(num_samp, size[0], size[1], size[2], device=device)+5
         noise2 = torch.randn(num_samp, size[0], size[1], size[2], device=device)
