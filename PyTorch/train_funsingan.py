@@ -181,6 +181,7 @@ def train_single_image_with_funiegan(opt):
             
             noise = opt.noise_amp * noise_ + prev
 
+
             # =================
             # Train Discriminator
             # =================
@@ -192,8 +193,9 @@ def train_single_image_with_funiegan(opt):
             
             # Fake loss
             fake = generator(noise.detach())
-            fake_pred = discriminator(fake.detach(), real)
-            fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
+            # DETACH fake_pred here to prevent the graph from being consumed for the generator's path
+            fake_pred_D = discriminator(fake.detach(), real) # Used for Discriminator
+            fake_loss = adv_criterion(fake_pred_D, torch.zeros_like(fake_pred_D))
             
             # Total discriminator loss
             loss_D = 0.5 * (real_loss + fake_loss)
@@ -211,28 +213,84 @@ def train_single_image_with_funiegan(opt):
             # =================
             generator.zero_grad()
         
-
-
-            if fake.shape[2:] != real.shape[2:]:
-                h = min(fake.shape[2], real.shape[2])
-                w = min(fake.shape[3], real.shape[3])
-                fake = fake[:, :, :h, :w]
+            # Generate fake image again for generator's loss calculation
+            # This ensures a fresh computational graph for the generator
+            fake_for_G = generator(noise)
+            fake_pred_G = discriminator(fake_for_G, real) # Used for Generator
+            
+            if fake_for_G.shape[2:] != real.shape[2:]:
+                h = min(fake_for_G.shape[2], real.shape[2])
+                w = min(fake_for_G.shape[3], real.shape[3])
+                fake_for_G = fake_for_G[:, :, :h, :w]
                 real = real[:, :, :h, :w]
 
             # Adversarial loss
-            loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
+            loss_adv = adv_criterion(fake_pred_G, torch.ones_like(fake_pred_G))
             
             # L1 loss
-            loss_l1 = l1(fake, real)
+            loss_l1 = l1(fake_for_G, real)
             
             # Perceptual loss
-            loss_vgg = perceptual(fake, real)
+            loss_vgg = perceptual(fake_for_G, real)
             
             # Total generator loss
             loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
             
-            loss_G.backward(retain_graph=True)
+            loss_G.backward() # retain_graph=True is not needed here if only G's loss is backpropagated
             optimizer_G.step()
+
+            # # =================
+            # # Train Discriminator
+            # # =================
+            # discriminator.zero_grad()
+            
+            # # Real loss
+            # real_pred = discriminator(real, real)
+            # real_loss = adv_criterion(real_pred, torch.ones_like(real_pred))
+            
+            # # Fake loss
+            # fake = generator(noise.detach())
+            # fake_pred = discriminator(fake.detach(), real)
+            # fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
+            
+            # # Total discriminator loss
+            # loss_D = 0.5 * (real_loss + fake_loss)
+            
+            # # Add gradient penalty if specified
+            # if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
+            #     gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.lambda_grad, opt.device)
+            #     loss_D += opt.lambda_grad * gradient_penalty
+            
+            # loss_D.backward()
+            # optimizer_D.step()
+
+            # # =================
+            # # Train Generator
+            # # =================
+            # generator.zero_grad()
+        
+
+
+            # if fake.shape[2:] != real.shape[2:]:
+            #     h = min(fake.shape[2], real.shape[2])
+            #     w = min(fake.shape[3], real.shape[3])
+            #     fake = fake[:, :, :h, :w]
+            #     real = real[:, :, :h, :w]
+
+            # # Adversarial loss
+            # loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
+            
+            # # L1 loss
+            # loss_l1 = l1(fake, real)
+            
+            # # Perceptual loss
+            # loss_vgg = perceptual(fake, real)
+            
+            # # Total generator loss
+            # loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
+            
+            # loss_G.backward(retain_graph=True)
+            # optimizer_G.step()
 
             # Print progress
             if epoch % 100 == 0:
