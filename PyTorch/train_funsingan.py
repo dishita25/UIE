@@ -149,7 +149,7 @@ def train_single_image_with_funiegan(opt):
             # Generate noise (this is the random input noise for the generator)
             # MODIFIED: Use blur input for the random noise component
             #change to blur_input later
-            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device) #blur_image_path=opt.blur_image_path)
             noise_ = m_noise(noise_)
 
         # for epoch in range(opt.niter):
