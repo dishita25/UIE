@@ -229,7 +229,7 @@ def train_single_image_with_funiegan(opt):
             # Total generator loss
             loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
             
-            loss_G.backward(retain_graph=True)
+            loss_G.backward()#retain_graph=True)
             optimizer_G.step()
 
             # Print progress
