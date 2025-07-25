@@ -18,8 +18,8 @@ from torchvision.utils import save_image
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
-    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Unpaired/trainA", help="Input directory")
-    parser.add_argument("--input_name", type=str, default="nm_0up.jpg", help="Input image name")
+    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Input directory")
+    parser.add_argument("--input_name", type=str, default="264286_00007889.jpg", help="Input image name")
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
     parser.add_argument("--min_nfc_init", type=int, default=32, help="Minimum number of filters")
     parser.add_argument("--ker_size", type=int, default=3, help="Kernel size")
@@ -41,8 +41,10 @@ def get_config():
     parser.add_argument("--manualSeed", type=int, default=None, help="Manual seed")
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
     parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
+    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
     
     args = parser.parse_args()
+    #Comment
     
     # Try to load config file if it exists
     if os.path.exists(args.config):
@@ -131,15 +133,29 @@ def train_single_image_with_funiegan(opt):
         m_image = nn.ZeroPad2d(pad_noise)
 
         # Initialize noise
-        fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+
+        # Initialize noise
+        # MODIFIED: If z_opt should also be based on the blur image
+        # fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+        # z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
+        # z_opt = m_noise(z_opt)
+
+        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
         z_opt = torch.full_like(fixed_noise, 0)
         z_opt = m_noise(z_opt)
 
         # Training loop
         for epoch in range(opt.niter):
-            # Generate noise
-            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+            # Generate noise (this is the random input noise for the generator)
+            # MODIFIED: Use blur input for the random noise component
+            #change to blur_input later
+            noise_ = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
             noise_ = m_noise(noise_)
+
+        # for epoch in range(opt.niter):
+        #     # Generate noise
+        #     noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        #     noise_ = m_noise(noise_)
 
             # Handle first scale differently
             if scale_num == 0:
@@ -165,6 +181,7 @@ def train_single_image_with_funiegan(opt):
             
             noise = opt.noise_amp * noise_ + prev
 
+
             # =================
             # Train Discriminator
             # =================
@@ -176,8 +193,9 @@ def train_single_image_with_funiegan(opt):
             
             # Fake loss
             fake = generator(noise.detach())
-            fake_pred = discriminator(fake.detach(), real)
-            fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
+            # DETACH fake_pred here to prevent the graph from being consumed for the generator's path
+            fake_pred_D = discriminator(fake.detach(), real) # Used for Discriminator
+            fake_loss = adv_criterion(fake_pred_D, torch.zeros_like(fake_pred_D))
             
             # Total discriminator loss
             loss_D = 0.5 * (real_loss + fake_loss)
@@ -195,28 +213,84 @@ def train_single_image_with_funiegan(opt):
             # =================
             generator.zero_grad()
         
-
-
-            if fake.shape[2:] != real.shape[2:]:
-                h = min(fake.shape[2], real.shape[2])
-                w = min(fake.shape[3], real.shape[3])
-                fake = fake[:, :, :h, :w]
+            # Generate fake image again for generator's loss calculation
+            # This ensures a fresh computational graph for the generator
+            fake_for_G = generator(noise)
+            fake_pred_G = discriminator(fake_for_G, real) # Used for Generator
+            
+            if fake_for_G.shape[2:] != real.shape[2:]:
+                h = min(fake_for_G.shape[2], real.shape[2])
+                w = min(fake_for_G.shape[3], real.shape[3])
+                fake_for_G = fake_for_G[:, :, :h, :w]
                 real = real[:, :, :h, :w]
 
             # Adversarial loss
-            loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
+            loss_adv = adv_criterion(fake_pred_G, torch.ones_like(fake_pred_G))
             
             # L1 loss
-            loss_l1 = l1(fake, real)
+            loss_l1 = l1(fake_for_G, real)
             
             # Perceptual loss
-            loss_vgg = perceptual(fake, real)
+            loss_vgg = perceptual(fake_for_G, real)
             
             # Total generator loss
             loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
             
-            loss_G.backward()
+            loss_G.backward() # retain_graph=True is not needed here if only G's loss is backpropagated
             optimizer_G.step()
+
+            # # =================
+            # # Train Discriminator
+            # # =================
+            # discriminator.zero_grad()
+            
+            # # Real loss
+            # real_pred = discriminator(real, real)
+            # real_loss = adv_criterion(real_pred, torch.ones_like(real_pred))
+            
+            # # Fake loss
+            # fake = generator(noise.detach())
+            # fake_pred = discriminator(fake.detach(), real)
+            # fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
+            
+            # # Total discriminator loss
+            # loss_D = 0.5 * (real_loss + fake_loss)
+            
+            # # Add gradient penalty if specified
+            # if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
+            #     gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.lambda_grad, opt.device)
+            #     loss_D += opt.lambda_grad * gradient_penalty
+            
+            # loss_D.backward()
+            # optimizer_D.step()
+
+            # # =================
+            # # Train Generator
+            # # =================
+            # generator.zero_grad()
+        
+
+
+            # if fake.shape[2:] != real.shape[2:]:
+            #     h = min(fake.shape[2], real.shape[2])
+            #     w = min(fake.shape[3], real.shape[3])
+            #     fake = fake[:, :, :h, :w]
+            #     real = real[:, :, :h, :w]
+
+            # # Adversarial loss
+            # loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
+            
+            # # L1 loss
+            # loss_l1 = l1(fake, real)
+            
+            # # Perceptual loss
+            # loss_vgg = perceptual(fake, real)
+            
+            # # Total generator loss
+            # loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
+            
+            # loss_G.backward(retain_graph=True)
+            # optimizer_G.step()
 
             # Print progress
             if epoch % 100 == 0:
