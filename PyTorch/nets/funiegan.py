@@ -44,6 +44,14 @@ class UNetUp(nn.Module):
         #  x = x[:, :, :h, :w]
         #  skip_input = skip_input[:, :, :h, :w]
         
+        # Ensure x and skip_input have same H and W
+        h = min(x.shape[2], skip_input.shape[2])
+        w = min(x.shape[3], skip_input.shape[3])
+        if x.shape[2:] != (h, w):
+            x = x[:, :, :h, :w]
+        if skip_input.shape[2:] != (h, w):
+            skip_input = skip_input[:, :, :h, :w]
+        
         x = torch.cat((x, skip_input), 1)
         x = self.up(x)
         x = self.relu(x)
