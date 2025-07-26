@@ -38,11 +38,11 @@ class UNetUp(nn.Module):
 
     def forward(self, x, skip_input):
         x = self.model(x)
-        if x.shape[2:] != skip_input.shape[2:]:
-         h = min(x.shape[2], skip_input.shape[2])
-         w = min(x.shape[3], skip_input.shape[3])
-         x = x[:, :, :h, :w]
-         skip_input = skip_input[:, :, :h, :w]
+        # if x.shape[2:] != skip_input.shape[2:]:
+        #  h = min(x.shape[2], skip_input.shape[2])
+        #  w = min(x.shape[3], skip_input.shape[3])
+        #  x = x[:, :, :h, :w]
+        #  skip_input = skip_input[:, :, :h, :w]
         
         x = torch.cat((x, skip_input), 1)
         x = self.up(x)
