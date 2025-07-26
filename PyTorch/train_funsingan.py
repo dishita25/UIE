@@ -41,7 +41,7 @@ def get_config():
     parser.add_argument("--manualSeed", type=int, default=None, help="Manual seed")
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
     parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
-    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainB/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
+    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
     
     args = parser.parse_args()
     #Comment
