@@ -274,6 +274,11 @@ class GeneratorFunieGAN(nn.Module):
         # Combining both HV and I 
         output_hvi = torch.cat([hv_output, i_output], dim=1)  # (batch, 3, H, W)
         
+        # Cropping to match (Mismatch because the input dim is odd number mein and because of that floor division mein round off ho hokar the value changed)
+        h, w = min(output_hvi.shape[2], hvi.shape[2]), min(output_hvi.shape[3], hvi.shape[3])
+        output_hvi = output_hvi[:, :, :h, :w]
+        hvi = hvi[:, :, :h, :w]
+    
         output_hvi = output_hvi + hvi        
         output_rgb = self.trans.PHVIT(output_hvi)
         
