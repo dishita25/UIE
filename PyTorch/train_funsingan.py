@@ -13,6 +13,7 @@ import functions
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
+import numpy as np 
 
 
 def get_config():
