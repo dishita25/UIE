@@ -13,6 +13,9 @@ import functions
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
+# Imports from HVI part
+from loss.losses import *
+from nets.HVI_transform import *
 
 
 def get_config():
@@ -42,9 +45,14 @@ def get_config():
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
     parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
     parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator. If not provided, noise will be used (fallback).")
-    
+    # From HVI-CIDNet
+    parser.add_argument('--L1_weight', type=float, default=1.0)
+    parser.add_argument('--D_weight',  type=float, default=0.5)
+    parser.add_argument('--E_weight',  type=float, default=50.0)
+    parser.add_argument('--P_weight',  type=float, default=1e-2)
+    parser.add_argument('--HVI_weight', type=float, default=1.0)
+        
     args = parser.parse_args()
-    #Comment
     
     # Try to load config file if it exists
     if os.path.exists(args.config):
@@ -126,6 +134,16 @@ def train_single_image_with_funiegan(opt):
         l1 = nn.L1Loss().to(opt.device)
         adv_criterion = nn.MSELoss().to(opt.device)
         perceptual = VGG19_PercepLoss().to(opt.device)
+        # Additional losses from HVI-CIDNet
+        L1_weight = opt.L1_weight
+        D_weight = opt.D_weight
+        E_weight = opt.E_weight
+        P_weight = opt.P_weight
+        L1_loss= L1Loss(loss_weight=L1_weight, reduction='mean').to(opt.device)
+        D_loss = SSIM(weight=D_weight).to(opt.device)
+        E_loss = EdgeLoss(loss_weight=E_weight).to(opt.device)
+        P_loss = PerceptualLoss({'conv1_2': 1, 'conv2_2': 1,'conv3_4': 1,'conv4_4': 1}, perceptual_weight = P_weight ,criterion='mse').to(opt.device)
+
 
         # Initialize padding
         pad_noise = int(((opt.ker_size - 1) * opt.num_layer) / 2)
@@ -224,17 +242,34 @@ def train_single_image_with_funiegan(opt):
                 fake_for_G = fake_for_G[:, :, :h, :w]
                 real = real[:, :, :h, :w]
 
-            # Adversarial loss
+            # Adversarial loss (RGB)
             loss_adv = adv_criterion(fake_pred_G, torch.ones_like(fake_pred_G))
             
-            # L1 loss
+            # L1 loss (RGB)
             loss_l1 = l1(fake_for_G, real)
             
-            # Perceptual loss
+            # Perceptual loss (RGB)
             loss_vgg = perceptual(fake_for_G, real)
             
+            
+            # HVI
+            # Create HVI transform instance
+            hvi_transform = RGB_HVI()
+            if torch.cuda.is_available():
+                hvi_transform = hvi_transform.cuda()
+
+            # Apply HVI transform
+            imgs_fake_hvi = hvi_transform.HVIT(fake_for_G)
+            imgs_good_gt_hvi = hvi_transform.HVIT(real)
+
+            
+            loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + opt.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
+            loss_rgb = (L1_loss(fake_for_G, real) + D_loss(fake_for_G, real) + E_loss(fake_for_G, real) + opt.P_weight * P_loss(fake_for_G, real)[0])
+        
+            
+            
             # Total generator loss
-            loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
+            loss_G = (loss_adv + 10 * loss_l1 + 12 * loss_vgg) + loss_rgb + opt.HVI_weight * loss_hvi
             
             loss_G.backward() # retain_graph=True is not needed here if only G's loss is backpropagated
             optimizer_G.step()

@@ -411,19 +411,19 @@ import torch.nn.functional as F
 
 # custom weights initialization called on netG and netD
 
-def read_image(opt):
-    x = img.imread('%s%s' % (opt.input_img,opt.ref_image))
-    print("Using the 1st read_image")
-    print(opt.ref_image)
-    return np2torch(x)
+# def read_image(opt):
+#     x = img.imread('%s%s' % (opt.input_img,opt.ref_image))
+#     print("Using the 1st read_image")
+#     print(opt.ref_image)
+#     return np2torch(x)
 
 def denorm(x):
-    out = (x + 1) / 2
-    return out.clamp(0, 1)
+    # out = (x + 1) / 2
+    return x.clamp(0, 1)
 
 def norm(x):
-    out = (x -0.5) *2
-    return out.clamp(-1, 1)
+    # out = (x -0.5) *2
+    return x.clamp(0, 1)
 
 #def denorm2image(I1,I2):
 #    out = (I1-I1.mean())/(I1.max()-I1.min())
