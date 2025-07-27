@@ -88,6 +88,14 @@ def show_tensor(tensor, title="Image"):
     plt.axis('off')
     plt.show()
 
+import torchvision.utils as vutils
+import os
+
+os.makedirs("outputs", exist_ok=True)
+
+def save_tensor(tensor, filename):
+    vutils.save_image(tensor, f"outputs/{filename}", normalize=True)
+
 def train_single_image_with_funiegan(opt):
     """Train FunieGAN on a single image using multi-scale approach"""
     print(f"Training on device: {opt.device}")
@@ -103,14 +111,17 @@ def train_single_image_with_funiegan(opt):
     real_ = functions.read_image(opt)
     print("After read_image:", real_.shape, real_.dtype, real_.min().item(), real_.max().item())
     show_tensor(real_, "read_image")
+    save_tensor(real_, "01_read_image.png")
 
     real = imresize(real_, opt.scale1, opt)
     print("After imresize:", real.shape, real.dtype, real.min().item(), real.max().item())
     show_tensor(real, "imresize")
+    save_tensor(real, "02_imresize.png")
 
     real_for_32_multiple_check = resize_tensor_to_multiple_of_32(real_, opt)
     print("After resize_tensor_to_multiple_of_32:", real_for_32_multiple_check.shape)
     show_tensor(real_for_32_multiple_check, "resize_tensor_to_multiple_of_32")
+    save_tensor(real_for_32_multiple_check, "03_resize_to_32.png")
 
     reals = []
     reals = functions.creat_reals_pyramid(real, reals, opt)
