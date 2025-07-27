@@ -143,33 +143,33 @@ def train_single_image_with_funiegan(opt):
         # z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
         # z_opt = m_noise(z_opt)
 
-        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
         z_opt = torch.full_like(fixed_noise, 0)
         z_opt = m_noise(z_opt)
 
-         # --- ADDED: Print/Save images before the training loop starts for this scale ---
-        print(f"--- Images for Scale {scale_num} before training loop ---")
-        # Save the 'real' image for this scale (input to Discriminator)
-        save_image(real, f"{opt.outf}/real_image_scale_{scale_num}_pre_train.png")
-        print(f"Saved real image for D at scale {scale_num}: {opt.outf}/real_image_scale_{scale_num}_pre_train.png")
+        # --- ADDED: Print/Save images before the training loop starts for this scale ---
+        # print(f"--- Images for Scale {scale_num} before training loop ---")
+        # # Save the 'real' image for this scale (input to Discriminator)
+        # save_image(real, f"{opt.outf}/real_image_scale_{scale_num}_pre_train.png")
+        # print(f"Saved real image for D at scale {scale_num}: {opt.outf}/real_image_scale_{scale_num}_pre_train.png")
 
-        # The 'blur_image_path' is used to generate 'fixed_noise' which becomes part of 'noise' for the Generator.
-        # Let's explicitly load and save the blur image if it's provided.
-        if opt.blur_image_path and os.path.exists(opt.blur_image_path):
-            # Load the blur image to print/save it.
-            # You might need to adjust `functions.read_image` or add a new helper
-            # to read just the blur image without multi-scale processing.
-            try:
-                # Assuming read_image can handle a direct path
-                blurry_input_original = functions.read_image_from_path(opt.blur_image_path, opt)
-                # Resize it to the current scale's dimensions for fair comparison
-                blurry_input_scaled = F.interpolate(blurry_input_original, size=(opt.nzx, opt.nzy), mode='bilinear', align_corners=False)
-                save_image(blurry_input_scaled, f"{opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
-                print(f"Saved blurry input for G at scale {scale_num}: {opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
-            except Exception as e:
-                print(f"Could not load or save blur_image_path for printing at scale {scale_num}: {e}")
-        else:
-            print(f"No blur image path provided or file not found for scale {scale_num}, using noise as G input initial base.")
+        # # The 'blur_image_path' is used to generate 'fixed_noise' which becomes part of 'noise' for the Generator.
+        # # Let's explicitly load and save the blur image if it's provided.
+        # if opt.blur_image_path and os.path.exists(opt.blur_image_path):
+        #     # Load the blur image to print/save it.
+        #     # You might need to adjust `functions.read_image` or add a new helper
+        #     # to read just the blur image without multi-scale processing.
+        #     try:
+        #         # Assuming read_image can handle a direct path
+        #         blurry_input_original = functions.read_image_from_path(opt.blur_image_path, opt)
+        #         # Resize it to the current scale's dimensions for fair comparison
+        #         blurry_input_scaled = F.interpolate(blurry_input_original, size=(opt.nzx, opt.nzy), mode='bilinear', align_corners=False)
+        #         save_image(blurry_input_scaled, f"{opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
+        #         print(f"Saved blurry input for G at scale {scale_num}: {opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
+        #     except Exception as e:
+        #         print(f"Could not load or save blur_image_path for printing at scale {scale_num}: {e}")
+        # else:
+        #     print(f"No blur image path provided or file not found for scale {scale_num}, using noise as G input initial base.")
         # --- END ADDED ---
 
 

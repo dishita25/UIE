@@ -628,6 +628,12 @@ def read_image_dir(dir,opt):
     x = x[:,0:3,:,:]
     return x
 
+def read_blur_image(opt):
+    x  = img.imread('%s' % (opt.blur_image_path))
+    x = np2torch(x,opt)
+    x = x[0:,0:3,:,:]
+    return x
+
 def np2torch(x,opt):
     if opt.nc_im == 3:
         x = x[:,:,:,None]
