@@ -38,6 +38,20 @@ class UNetUp(nn.Module):
 
     def forward(self, x, skip_input):
         x = self.model(x)
+        # if x.shape[2:] != skip_input.shape[2:]:
+        #  h = min(x.shape[2], skip_input.shape[2])
+        #  w = min(x.shape[3], skip_input.shape[3])
+        #  x = x[:, :, :h, :w]
+        #  skip_input = skip_input[:, :, :h, :w]
+        
+        # Ensure x and skip_input have same H and W
+        h = min(x.shape[2], skip_input.shape[2])
+        w = min(x.shape[3], skip_input.shape[3])
+        if x.shape[2:] != (h, w):
+            x = x[:, :, :h, :w]
+        if skip_input.shape[2:] != (h, w):
+            skip_input = skip_input[:, :, :h, :w]
+        
         x = torch.cat((x, skip_input), 1)
         x = self.up(x)
         x = self.relu(x)
@@ -260,6 +274,11 @@ class GeneratorFunieGAN(nn.Module):
         # Combining both HV and I 
         output_hvi = torch.cat([hv_output, i_output], dim=1)  # (batch, 3, H, W)
         
+        # Cropping to match (Mismatch because the input dim is odd number mein and because of that floor division mein round off ho hokar the value changed)
+        h, w = min(output_hvi.shape[2], hvi.shape[2]), min(output_hvi.shape[3], hvi.shape[3])
+        output_hvi = output_hvi[:, :, :h, :w]
+        hvi = hvi[:, :, :h, :w]
+    
         output_hvi = output_hvi + hvi        
         output_rgb = self.trans.PHVIT(output_hvi)
         
