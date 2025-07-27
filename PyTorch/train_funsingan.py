@@ -69,6 +69,57 @@ def get_config():
     return args
 
 
+def train_single_image_with_funiegan(opt):
+    """Train FunieGAN on a single image using multi-scale approach"""
+    print(f"Training on device: {opt.device}")
+    print(f"Input image: {os.path.join(opt.input_dir, opt.input_name)}")
+
+
+    def show_tensor_image(tensor, title="Image"):
+    """Helper function to display a PyTorch tensor as an image."""
+    # Detach from graph, move to CPU, convert to NumPy
+    img_np = tensor.detach().cpu().numpy()
+
+    # Denormalize from [-1, 1] to [0, 1] for display
+    img_np = (img_np + 1) / 2
+    img_np = np.clip(img_np, 0, 1) # Ensure values are within [0, 1]
+
+    # Matplotlib expects (H, W, C) for color images, but PyTorch is (C, H, W)
+    if img_np.shape[0] == 3 or img_np.shape[0] == 1: # Check if it's a channel-first image
+        img_np = np.transpose(img_np, (1, 2, 0)) # Permute to (H, W, C)
+
+    # For grayscale (1 channel), imshow might expect (H, W)
+    if img_np.shape[2] == 1:
+        img_np = img_np.squeeze(2) # Remove the channel dimension
+
+    plt.figure()
+    plt.imshow(img_np)
+    plt.title(title)
+    plt.axis('off') # Hide axes for cleaner image display
+    plt.show()
+
+def show_tensor_image(tensor, title="Image"):
+    """Helper function to display a PyTorch tensor as an image."""
+    # Detach from graph, move to CPU, convert to NumPy
+    img_np = tensor.detach().cpu().numpy()
+
+    # Denormalize from [-1, 1] to [0, 1] for display
+    img_np = (img_np + 1) / 2
+    img_np = np.clip(img_np, 0, 1) # Ensure values are within [0, 1]
+
+    # Matplotlib expects (H, W, C) for color images, but PyTorch is (C, H, W)
+    if img_np.shape[0] == 3 or img_np.shape[0] == 1: # Check if it's a channel-first image
+        img_np = np.transpose(img_np, (1, 2, 0)) # Permute to (H, W, C)
+
+    # For grayscale (1 channel), imshow might expect (H, W)
+    if img_np.shape[2] == 1:
+        img_np = img_np.squeeze(2) # Remove the channel dimension
+
+    plt.figure()
+    plt.imshow(img_np)
+    plt.title(title)
+    plt.axis('off') # Hide axes for cleaner image display
+    plt.show()
 
 
 
@@ -79,10 +130,44 @@ def train_single_image_with_funiegan(opt):
     
     # Read and preprocess image
     real_ = functions.read_image(opt)
+
+    # --- Print/Save real_ BEFORE first imresize ---
+    print(f"\n--- Image before initial imresize (real_) ---")
+    print(f"Shape: {real_.shape}, Min: {real_.min().item():.4f}, Max: {real_.max().item():.4f}")
+    show_tensor_image(real_, title="Before Initial imresize") # <<< Added line to display
+    # --- End ---
+
     real = imresize(real_, opt.scale1, opt)
-    real_ = resize_tensor_to_multiple_of_32(real_, opt)
+    
+    # --- Print/Save real AFTER first imresize (real) ---
+    print(f"\n--- Image after initial imresize (real, scale1={opt.scale1}) ---")
+    print(f"Shape: {real.shape}, Min: {real.min().item():.4f}, Max: {real.max().item():.4f}")
+    show_tensor_image(real, title=f"After Initial imresize (scale={opt.scale1})") # <<< Added line to display
+    # --- End ---
+
+    # Note: real_ is reassigned here, which is slightly confusing given the variable name
+    # It now holds the output of resize_tensor_to_multiple_of_32 applied to the *original* real_
+    # This real_ is not used to create the pyramid, the 'real' above is.
+    real_for_32_multiple_check = resize_tensor_to_multiple_of_32(real_, opt) # Renamed variable for clarity
+    
+    # --- Print/Save real_ AFTER resize_tensor_to_multiple_of_32 ---
+    print(f"\n--- Image after resize_tensor_to_multiple_of_32 (new real_for_32_multiple_check) ---")
+    print(f"Shape: {real_for_32_multiple_check.shape}, Min: {real_for_32_multiple_check.min().item():.4f}, Max: {real_for_32_multiple_check.max().item():.4f}")
+    show_tensor_image(real_for_32_multiple_check, title="After Resize to Multiple of 32") # <<< Added line to display
+    # --- End ---
+
     reals = []
     reals = functions.creat_reals_pyramid(real, reals, opt)
+    
+    # Read and preprocess image
+    # real_ = functions.read_image(opt)
+    # real = imresize(real_, opt.scale1, opt)
+    # img = functions.show_image(real_, opt)
+    # print("Real image:")
+    # plt.imshow(img)
+    # real_ = resize_tensor_to_multiple_of_32(real_, opt)
+    # reals = []
+    # reals = functions.creat_reals_pyramid(real, reals, opt)
     
     print(f"Created pyramid with {len(reals)} scales")
     for i, r in enumerate(reals):
