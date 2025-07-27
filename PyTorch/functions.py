@@ -413,6 +413,8 @@ import torch.nn.functional as F
 
 def read_image(opt):
     x = img.imread('%s%s' % (opt.input_img,opt.ref_image))
+    print("Using the 1st read_image")
+    print(opt.ref_image)
     return np2torch(x)
 
 def denorm(x):
