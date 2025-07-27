@@ -75,8 +75,7 @@ def train_single_image_with_funiegan(opt):
     print(f"Input image: {os.path.join(opt.input_dir, opt.input_name)}")
 
 
-    def show_tensor_image(tensor, title="Image"):
-    """Helper function to display a PyTorch tensor as an image."""
+def show_tensor_image(tensor, title="Image"):
     # Detach from graph, move to CPU, convert to NumPy
     img_np = tensor.detach().cpu().numpy()
 
