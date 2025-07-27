@@ -262,11 +262,8 @@ def train_single_image_with_funiegan(opt):
             imgs_fake_hvi = hvi_transform.HVIT(fake_for_G)
             imgs_good_gt_hvi = hvi_transform.HVIT(real)
 
-            
             loss_hvi = (L1_loss(imgs_fake_hvi, imgs_good_gt_hvi) + D_loss(imgs_fake_hvi, imgs_good_gt_hvi) + E_loss(imgs_fake_hvi, imgs_good_gt_hvi) + opt.P_weight * P_loss(imgs_fake_hvi, imgs_good_gt_hvi)[0])
             loss_rgb = (L1_loss(fake_for_G, real) + D_loss(fake_for_G, real) + E_loss(fake_for_G, real) + opt.P_weight * P_loss(fake_for_G, real)[0])
-        
-            
             
             # Total generator loss
             loss_G = (loss_adv + 10 * loss_l1 + 12 * loss_vgg) + loss_rgb + opt.HVI_weight * loss_hvi
