@@ -14,6 +14,7 @@ from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
 import numpy as np 
+import wandb
 
 
 def get_config():
@@ -132,7 +133,8 @@ def train_single_image_with_funiegan(opt):
 
     # Initialize lists to store generators, noise, and noise amplitudes
     Gs, Zs, NoiseAmp = [], [], []
-    in_s = torch.full_like(reals[0], 0, device=opt.device)
+    # in_s = torch.full_like(reals[0], )
+    in_s = torch.full_like(reals[0], 0, device=opt.device) 
 
     # Train at each scale
     for scale_num in range(opt.stop_scale + 1):
@@ -188,31 +190,6 @@ def train_single_image_with_funiegan(opt):
         fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
         z_opt = torch.full_like(fixed_noise, 0)
         z_opt = m_noise(z_opt)
-
-        # --- ADDED: Print/Save images before the training loop starts for this scale ---
-        # print(f"--- Images for Scale {scale_num} before training loop ---")
-        # # Save the 'real' image for this scale (input to Discriminator)
-        # save_image(real, f"{opt.outf}/real_image_scale_{scale_num}_pre_train.png")
-        # print(f"Saved real image for D at scale {scale_num}: {opt.outf}/real_image_scale_{scale_num}_pre_train.png")
-
-        # # The 'blur_image_path' is used to generate 'fixed_noise' which becomes part of 'noise' for the Generator.
-        # # Let's explicitly load and save the blur image if it's provided.
-        # if opt.blur_image_path and os.path.exists(opt.blur_image_path):
-        #     # Load the blur image to print/save it.
-        #     # You might need to adjust `functions.read_image` or add a new helper
-        #     # to read just the blur image without multi-scale processing.
-        #     try:
-        #         # Assuming read_image can handle a direct path
-        #         blurry_input_original = functions.read_image_from_path(opt.blur_image_path, opt)
-        #         # Resize it to the current scale's dimensions for fair comparison
-        #         blurry_input_scaled = F.interpolate(blurry_input_original, size=(opt.nzx, opt.nzy), mode='bilinear', align_corners=False)
-        #         save_image(blurry_input_scaled, f"{opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
-        #         print(f"Saved blurry input for G at scale {scale_num}: {opt.outf}/blurry_input_G_scale_{scale_num}_pre_train.png")
-        #     except Exception as e:
-        #         print(f"Could not load or save blur_image_path for printing at scale {scale_num}: {e}")
-        # else:
-        #     print(f"No blur image path provided or file not found for scale {scale_num}, using noise as G input initial base.")
-        # --- END ADDED ---
 
 
         # Training loop
@@ -371,16 +348,31 @@ def train_single_image_with_funiegan(opt):
                       f"Adv: {loss_adv.item():.4f}, "
                       f"L1: {loss_l1.item():.4f}, "
                       f"VGG: {loss_vgg.item():.4f}")
+                
+                wandb.log({
+                    f"scale_{scale_num}/D_loss": loss_D.item(),
+                    f"scale_{scale_num}/G_loss": loss_G.item(),
+                    f"scale_{scale_num}/Adv_loss": loss_adv.item(),
+                    f"scale_{scale_num}/L1_loss": loss_l1.item(),
+                    f"scale_{scale_num}/VGG_loss": loss_vgg.item(),
+                }, step=epoch)
+                
+            
 
             # Save sample images
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
+
+                    wandb.log({f"scale_{scale_num}/generated_image_epoch_{epoch}": wandb.Image(fake_sample)}, step=epoch)
                     
                     # Save real image for comparison
                     if epoch == 0:
                         save_image(real, f"{opt.outf}/real.png")
+                        wandb.log({f"scale_{scale_num}/real_image": wandb.Image(real)}, step=epoch)
+
+
 
         # Store trained models
         Gs.append(generator.eval())
@@ -434,6 +426,9 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
         
         # Save sample
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
+
+        wandb.log({f"random_sample_{i+1}": wandb.Image(sample)})
+
     
     print(f"Samples saved to {samples_dir}")
 
@@ -449,6 +444,9 @@ def main():
     for key, value in vars(opt).items():
         print(f"  {key}: {value}")
     print("=" * 50)
+
+    wandb.init(project="FunieGAN_Single_Image_Training", config=opt)
+
     
     if opt.mode == 'train':
         # Train the model
@@ -483,6 +481,9 @@ def main():
     else:
         print(f"Unknown mode: {opt.mode}")
         print("Available modes: train, random_samples")
+
+    wandb.finish()
+
 
 
 if __name__ == '__main__':
