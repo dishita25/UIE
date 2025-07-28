@@ -45,11 +45,11 @@ Get datasets from
  - http://irvlab.cs.umn.edu/resources/euvp-dataset
  - http://irvlab.cs.umn.edu/resources/ufo-120-dataset
 """
-gtr_dir = "/home/xahid/datasets/released/EUVP/test_samples/GTr/"
+gtr_dir = "/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA/264286_00007889.jpg"
 #gtr_dir = "/home/xahid/datasets/released/UFO-120/TEST/hr/"
 
 ## generated im paths
-gen_dir = "eval_data/euvp_test/funie-gan/" 
+gen_dir = "kaggle/working/TrainedModels/264286_00007889/scale_factor=0.750000,alpha=10/5/fake_epoch_1999.png" 
 #gen_dir = "eval_data/ufo_test/deep-sesr/" 
 
 

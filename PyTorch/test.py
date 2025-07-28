@@ -22,10 +22,10 @@ import torchvision.transforms as transforms
 
 ## options
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA/264296_n02319095_1106.JPEG")
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/input/underwater-image-enhancement/checkpoints/FunieGAN/EUVP/generator_60.pth")
+parser.add_argument("--model_path", type=str, default="kaggle/working/TrainedModels/264286_00007889/scale_factor=0.750000,alpha=10/final_model.pth")    # Changed model parameters path
 opt = parser.parse_args()
 
 ## checks
