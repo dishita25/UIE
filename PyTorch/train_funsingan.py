@@ -365,12 +365,12 @@ def train_single_image_with_funiegan(opt):
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
 
-                    wandb.log({f"scale_{scale_num}/generated_image_epoch_{epoch}": wandb.Image(fake_sample)}, step=epoch)
+                    #wandb.log({f"scale_{scale_num}/generated_image_epoch_{epoch}": wandb.Image(fake_sample)}, step=epoch)
                     
                     # Save real image for comparison
                     if epoch == 0:
                         save_image(real, f"{opt.outf}/real.png")
-                        wandb.log({f"scale_{scale_num}/real_image": wandb.Image(real[0])}, step=epoch)
+                        #wandb.log({f"scale_{scale_num}/real_image": wandb.Image(real[0])}, step=epoch)
 
 
 
@@ -427,7 +427,7 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
         # Save sample
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
 
-        wandb.log({f"random_sample_{i+1}": wandb.Image(sample[0])})
+        #wandb.log({f"random_sample_{i+1}": wandb.Image(sample[0])})
 
     
     print(f"Samples saved to {samples_dir}")
@@ -445,7 +445,7 @@ def main():
         print(f"  {key}: {value}")
     print("=" * 50)
 
-    wandb.init(project="FunieGAN_Single_Image_Training", config=opt)
+    wandb.init(project="FUnIE_SinGAN", config=opt)
 
     
     if opt.mode == 'train':
