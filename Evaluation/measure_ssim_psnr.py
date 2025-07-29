@@ -12,9 +12,9 @@ from os.path import join
 from ntpath import basename
 ## local libs
 from imqual_utils import getSSIM, getPSNR
-import wandb
+# import wandb
 
-wandb.init(project="UIE_FUnIE_SIN_HVI")
+# wandb.init(project="UIE_FUnIE_SIN_HVI")
 
 
 ## compares avg ssim and psnr 
@@ -26,7 +26,7 @@ def SSIMs_PSNRs(gtr_dir, gen_dir, im_res=(256, 256)):
     gtr_paths = sorted(glob(join(gtr_dir, "*.*")))
     gen_paths = sorted(glob(join(gen_dir, "*.*")))
     ssims, psnrs = [], []
-    for gtr_path, gen_path in zip(gtr_paths, gen_paths):
+    for gtr_path, gen_path in zip(gtr_dir, gen_dir):    # for gtr_path, gen_path in zip(gtr_paths, gen_paths):
         gtr_f = basename(gtr_path).split('.')[0]
         gen_f = basename(gen_path).split('.')[0]
         if (gtr_f==gen_f):
@@ -65,13 +65,13 @@ print ("PSNR on {0} samples".format(len(PSNR_measures)))
 print ("Mean: {0} std: {1}".format(np.mean(PSNR_measures), np.std(PSNR_measures)))
 
 
-wandb.log({
-    "SSIM_values": SSIM_measures.tolist(),
-    "PSNR_values": PSNR_measures.tolist(),
-    "SSIM_mean": float(np.mean(SSIM_measures)),
-    "SSIM_std": float(np.std(SSIM_measures)),
-    "PSNR_mean": float(np.mean(PSNR_measures)),
-    "PSNR_std": float(np.std(PSNR_measures))
-})
+# wandb.log({
+#     "SSIM_values": SSIM_measures.tolist(),
+#     "PSNR_values": PSNR_measures.tolist(),
+#     "SSIM_mean": float(np.mean(SSIM_measures)),
+#     "SSIM_std": float(np.std(SSIM_measures)),
+#     "PSNR_mean": float(np.mean(PSNR_measures)),
+#     "PSNR_std": float(np.std(PSNR_measures))
+# })
 
 

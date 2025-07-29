@@ -16,7 +16,7 @@ from torchvision.utils import save_image
 # Imports from HVI part
 from loss.losses import *
 from nets.HVI_transform import *
-import wandb
+# import wandb
 
 
 def get_config():
@@ -283,25 +283,26 @@ def train_single_image_with_funiegan(opt):
                       f"HVI: {loss_hvi.item():.4f}, "
                       f"RGB: {loss_rgb.item():.4f}")
 
-            wandb.log({
-                "Epoch": epoch,
-                "D_loss": loss_D.item(),
-                "G_loss": loss_G.item(),
-                "Adv": loss_adv.item(),
-                "L1": loss_l1.item(),
-                "VGG": loss_vgg.item(),
-                "HVI": loss_hvi.item(),
-                "RGB": loss_rgb.item(),
-                # Add your custom metrics here if needed
-            })
+            # wandb.log({
+            #     "Epoch": epoch,
+            #     "D_loss": loss_D.item(),
+            #     "G_loss": loss_G.item(),
+            #     "Adv": loss_adv.item(),
+            #     "L1": loss_l1.item(),
+            #     "VGG": loss_vgg.item(),
+            #     "HVI": loss_hvi.item(),
+            #     "RGB": loss_rgb.item(),
+            #     # Add your custom metrics here if needed
+            # })
 
             # Save sample images
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
+                    
                     # Log image to wandb
-                    wandb.log({"generated_sample": [wandb.Image(fake_sample[0], caption=f"Epoch {epoch}")]})
+                    # wandb.log({"generated_sample": [wandb.Image(fake_sample[0], caption=f"Epoch {epoch}")]})
                     
                     # Save real image for comparison
                     if epoch == 0:
@@ -375,7 +376,7 @@ def main():
         print(f"  {key}: {value}")
     print("=" * 50)
     
-    run = wandb.init(project="UIE_FUnIE_SIN_HVI", config=opt)
+    # run = wandb.init(project="UIE_FUnIE_SIN_HVI", config=opt)
     
     if opt.mode == 'train':
         # Train the model
