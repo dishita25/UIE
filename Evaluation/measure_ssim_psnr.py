@@ -12,6 +12,9 @@ from os.path import join
 from ntpath import basename
 ## local libs
 from imqual_utils import getSSIM, getPSNR
+import wandb
+
+wandb.init(project="UIE_FUnIE_SIN_HVI")
 
 
 ## compares avg ssim and psnr 
@@ -61,5 +64,14 @@ print ("Mean: {0} std: {1}".format(np.mean(SSIM_measures), np.std(SSIM_measures)
 print ("PSNR on {0} samples".format(len(PSNR_measures)))
 print ("Mean: {0} std: {1}".format(np.mean(PSNR_measures), np.std(PSNR_measures)))
 
+
+wandb.log({
+    "SSIM_values": SSIM_measures.tolist(),
+    "PSNR_values": PSNR_measures.tolist(),
+    "SSIM_mean": float(np.mean(SSIM_measures)),
+    "SSIM_std": float(np.std(SSIM_measures)),
+    "PSNR_mean": float(np.mean(PSNR_measures)),
+    "PSNR_std": float(np.std(PSNR_measures))
+})
 
 

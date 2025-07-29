@@ -16,6 +16,7 @@ from torchvision.utils import save_image
 # Imports from HVI part
 from loss.losses import *
 from nets.HVI_transform import *
+import wandb
 
 
 def get_config():
@@ -271,59 +272,6 @@ def train_single_image_with_funiegan(opt):
             loss_G.backward() # retain_graph=True is not needed here if only G's loss is backpropagated
             optimizer_G.step()
 
-            # # =================
-            # # Train Discriminator
-            # # =================
-            # discriminator.zero_grad()
-            
-            # # Real loss
-            # real_pred = discriminator(real, real)
-            # real_loss = adv_criterion(real_pred, torch.ones_like(real_pred))
-            
-            # # Fake loss
-            # fake = generator(noise.detach())
-            # fake_pred = discriminator(fake.detach(), real)
-            # fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
-            
-            # # Total discriminator loss
-            # loss_D = 0.5 * (real_loss + fake_loss)
-            
-            # # Add gradient penalty if specified
-            # if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
-            #     gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.lambda_grad, opt.device)
-            #     loss_D += opt.lambda_grad * gradient_penalty
-            
-            # loss_D.backward()
-            # optimizer_D.step()
-
-            # # =================
-            # # Train Generator
-            # # =================
-            # generator.zero_grad()
-        
-
-
-            # if fake.shape[2:] != real.shape[2:]:
-            #     h = min(fake.shape[2], real.shape[2])
-            #     w = min(fake.shape[3], real.shape[3])
-            #     fake = fake[:, :, :h, :w]
-            #     real = real[:, :, :h, :w]
-
-            # # Adversarial loss
-            # loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
-            
-            # # L1 loss
-            # loss_l1 = l1(fake, real)
-            
-            # # Perceptual loss
-            # loss_vgg = perceptual(fake, real)
-            
-            # # Total generator loss
-            # loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
-            
-            # loss_G.backward(retain_graph=True)
-            # optimizer_G.step()
-
             # Print progress
             if epoch % 100 == 0:
                 print(f"Epoch {epoch}/{opt.niter}: "
@@ -331,13 +279,29 @@ def train_single_image_with_funiegan(opt):
                       f"G_loss: {loss_G.item():.4f}, "
                       f"Adv: {loss_adv.item():.4f}, "
                       f"L1: {loss_l1.item():.4f}, "
-                      f"VGG: {loss_vgg.item():.4f}")
+                      f"VGG: {loss_vgg.item():.4f}, "
+                      f"HVI: {loss_hvi.item():.4f}, "
+                      f"RGB: {loss_rgb.item():.4f}")
+
+            wandb.log({
+                "Epoch": epoch,
+                "D_loss": loss_D.item(),
+                "G_loss": loss_G.item(),
+                "Adv": loss_adv.item(),
+                "L1": loss_l1.item(),
+                "VGG": loss_vgg.item(),
+                "HVI": loss_hvi.item(),
+                "RGB": loss_rgb.item(),
+                # Add your custom metrics here if needed
+            })
 
             # Save sample images
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
+                    # Log image to wandb
+                    wandb.log({"generated_sample": [wandb.Image(fake_sample, caption=f"Epoch {epoch}")]})
                     
                     # Save real image for comparison
                     if epoch == 0:
@@ -410,6 +374,8 @@ def main():
     for key, value in vars(opt).items():
         print(f"  {key}: {value}")
     print("=" * 50)
+    
+    run = wandb.init(project="UIE_FUnIE_SIN_HVI", config=opt)
     
     if opt.mode == 'train':
         # Train the model
