@@ -301,7 +301,7 @@ def train_single_image_with_funiegan(opt):
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
                     # Log image to wandb
-                    wandb.log({"generated_sample": [wandb.Image(fake_sample, caption=f"Epoch {epoch}")]})
+                    wandb.log({"generated_sample": [wandb.Image(fake_sample[0], caption=f"Epoch {epoch}")]})
                     
                     # Save real image for comparison
                     if epoch == 0:
