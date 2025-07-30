@@ -350,12 +350,23 @@ def train_single_image_with_funiegan(opt):
                       f"VGG: {loss_vgg.item():.4f}")
                 
                 wandb.log({
-                    f"scale_{scale_num}/D_loss": loss_D.item(),
-                    f"scale_{scale_num}/G_loss": loss_G.item(),
-                    f"scale_{scale_num}/Adv_loss": loss_adv.item(),
-                    f"scale_{scale_num}/L1_loss": loss_l1.item(),
-                    f"scale_{scale_num}/VGG_loss": loss_vgg.item(),
-                }, step=epoch)
+                    f"Scale {scale_num}/D_loss": loss_D.item(),
+                    f"Scale {scale_num}/G_loss": loss_G.item(),
+                    f"Scale {scale_num}/Adv_loss": loss_adv.item(),
+                    f"Scale {scale_num}/L1_loss": loss_l1.item(),
+                    f"Scale {scale_num}/VGG_loss": loss_vgg.item(),
+                    "Global Step": global_step, # Explicitly log global step for context
+                    "Current Scale": scale_num,
+                    "Epoch in Scale": epoch
+                }, step=global_step
+                
+                # wandb.log({
+                #     f"scale_{scale_num}/D_loss": loss_D.item(),
+                #     f"scale_{scale_num}/G_loss": loss_G.item(),
+                #     f"scale_{scale_num}/Adv_loss": loss_adv.item(),
+                #     f"scale_{scale_num}/L1_loss": loss_l1.item(),
+                #     f"scale_{scale_num}/VGG_loss": loss_vgg.item(),
+                # }, step=epoch)
                 
             
 
