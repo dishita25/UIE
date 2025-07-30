@@ -97,7 +97,7 @@ os.makedirs("outputs", exist_ok=True)
 def save_tensor(tensor, filename):
     vutils.save_image(tensor, f"outputs/{filename}", normalize=True)
 
-def train_single_image_with_funiegan(opt):
+def train_single_image_with_funiegan(opt, global_step):
     """Train FunieGAN on a single image using multi-scale approach"""
     print(f"Training on device: {opt.device}")
     print(f"Input image: {os.path.join(opt.input_dir, opt.input_name)}")
@@ -412,10 +412,10 @@ def train_single_image_with_funiegan(opt):
     }, final_model_path)
     
     print(f"\nTraining completed! Final model saved to {final_model_path}")
-    return Gs, Zs, reals, NoiseAmp
+    return Gs, Zs, reals, NoiseAmp, global_step
 
 
-def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
+def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5, global_step=None):
     """Generate random samples using trained model"""
     print(f"\nGenerating {num_samples} random samples...")
     
@@ -463,10 +463,10 @@ def main():
     
     if opt.mode == 'train':
         # Train the model
-        Gs, Zs, reals, NoiseAmp = train_single_image_with_funiegan(opt)
+        Gs, Zs, reals, NoiseAmp, final_global_step = train_single_image_with_funiegan(opt, initial_global_step)
         
         # Generate some samples
-        generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5)
+        generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5, global_step=final_global_step)
         
     elif opt.mode == 'random_samples':
         # Load trained model and generate samples
