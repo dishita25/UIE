@@ -358,7 +358,7 @@ def train_single_image_with_funiegan(opt):
                     "Global Step": global_step, # Explicitly log global step for context
                     "Current Scale": scale_num,
                     "Epoch in Scale": epoch
-                }, step=global_step
+                }, step=global_step)
                 
                 # wandb.log({
                 #     f"scale_{scale_num}/D_loss": loss_D.item(),
