@@ -456,6 +456,8 @@ def main():
         print(f"  {key}: {value}")
     print("=" * 50)
 
+    initial_global_step = 0
+
     wandb.init(project="FUnIE_SinGAN", config=opt)
 
     
