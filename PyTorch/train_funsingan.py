@@ -788,8 +788,53 @@ def main():
     print("=" * 50)
     print("FunieGAN Training Script (Image Enhancement Mode)")
     print("=" * 50)
+    print(f"Configuration:")
+    for key, value in vars(opt).items():
+        print(f"  {key}: {value}")
+    print("=" * 50)
+
+    initial_global_step = 0
+
+    wandb.init(project="FUnIE_SinGAN", config=opt)
+
     
-    # ... (rest of main function remains the same)
+    if opt.mode == 'train':
+        # Train the model
+        Gs, Zs, reals, NoiseAmp, final_global_step = train_single_image_with_funiegan(opt, initial_global_step)
+        
+        # Generate some samples
+        generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5, global_step=final_global_step)
+        
+    elif opt.mode == 'random_samples':
+        # Load trained model and generate samples
+        final_model_path = os.path.join(functions.generate_dir2save(opt), "final_model.pth")
+        if os.path.exists(final_model_path):
+            checkpoint = torch.load(final_model_path, map_location=opt.device)
+            
+            # Reconstruct generators
+            Gs = []
+            for i, state_dict in enumerate(checkpoint['Gs']):
+                G = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
+                G.load_state_dict(state_dict)
+                G.eval()
+                Gs.append(G)
+            
+            Zs = checkpoint['Zs']
+            NoiseAmp = checkpoint['NoiseAmp']
+            reals = checkpoint['reals']
+            
+            generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=10)
+        else:
+            print(f"No trained model found at {final_model_path}")
+            print("Please train the model first with --mode train")
     
+    else:
+        print(f"Unknown mode: {opt.mode}")
+        print("Available modes: train, random_samples")
+
+    wandb.finish()
+
+
+
 if __name__ == '__main__':
     main()
