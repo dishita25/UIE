@@ -102,6 +102,13 @@ def train_single_image_with_funiegan(opt, global_step):
     print(f"Training on device: {opt.device}")
     print(f"Input image: {os.path.join(opt.input_dir, opt.input_name)}")
     
+    # Read and preprocess image
+    # real_ = functions.read_image(opt)
+    # real = imresize(real_, opt.scale1, opt)
+    # real_for_32_multiple_check = resize_tensor_to_multiple_of_32(real_, opt) # Renamed variable for clarity
+    # reals = []
+    # reals = functions.creat_reals_pyramid(real, reals, opt)
+
     real_ = functions.read_image(opt)
     print("After read_image:", real_.shape, real_.dtype, real_.min().item(), real_.max().item())
     show_tensor(real_, "read_image")
@@ -172,10 +179,17 @@ def train_single_image_with_funiegan(opt, global_step):
         m_noise = nn.ZeroPad2d(pad_noise)
         m_image = nn.ZeroPad2d(pad_noise)
 
+        # Initialize noise
+
+        # Initialize noise
+        # MODIFIED: If z_opt should also be based on the blur image
+        # fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
+        # z_opt = torch.full_like(fixed_noise, 0) # z_opt is initialized as zeros, then updated by gradient descent later
+        # z_opt = m_noise(z_opt)
 
         fixed_noise = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
-        #z_opt = torch.full_like(fixed_noise, 0)
-        #z_opt = m_noise(z_opt)
+        z_opt = torch.full_like(fixed_noise, 0)
+        z_opt = m_noise(z_opt)
 
 
         # Training loop
@@ -184,12 +198,18 @@ def train_single_image_with_funiegan(opt, global_step):
             # MODIFIED: Use blur input for the random noise component
             #change to blur_input later
             noise_ = functions.generate_blur_input([opt.nc_z, opt.nzx, opt.nzy], device=opt.device, blur_image_path=opt.blur_image_path)
-            #noise_ = m_noise(noise_)
+            noise_ = m_noise(noise_)
+
+        # for epoch in range(opt.niter):
+        #     # Generate noise
+        #     noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+        #     noise_ = m_noise(noise_)
 
             # Handle first scale differently
             if scale_num == 0:
-                prev = m_image(noise_)
-                noise = noise_
+                z_prev = torch.full_like(noise_, 0)
+                prev = m_image(z_prev)
+                opt.noise_amp = 1
             else:
                 # Generate previous scale output
                 prev = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, 'rand', m_noise, m_image, opt)
@@ -202,13 +222,10 @@ def train_single_image_with_funiegan(opt, global_step):
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
 
-                if prev.shape != noise_.shape:
-                    # Resize previous output to match noise dimensions
-                    prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
-                    
-
             # Create input noise - ensure tensors have matching dimensions
-            
+            if prev.shape != noise_.shape:
+                # Resize prev to match noise_ dimensions
+                prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
             
             noise = opt.noise_amp * noise_ + prev
 
@@ -270,6 +287,59 @@ def train_single_image_with_funiegan(opt, global_step):
             loss_G.backward() # retain_graph=True is not needed here if only G's loss is backpropagated
             optimizer_G.step()
 
+            # # =================
+            # # Train Discriminator
+            # # =================
+            # discriminator.zero_grad()
+            
+            # # Real loss
+            # real_pred = discriminator(real, real)
+            # real_loss = adv_criterion(real_pred, torch.ones_like(real_pred))
+            
+            # # Fake loss
+            # fake = generator(noise.detach())
+            # fake_pred = discriminator(fake.detach(), real)
+            # fake_loss = adv_criterion(fake_pred, torch.zeros_like(fake_pred))
+            
+            # # Total discriminator loss
+            # loss_D = 0.5 * (real_loss + fake_loss)
+            
+            # # Add gradient penalty if specified
+            # if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
+            #     gradient_penalty = functions.calc_gradient_penalty(discriminator, real, fake, opt.lambda_grad, opt.device)
+            #     loss_D += opt.lambda_grad * gradient_penalty
+            
+            # loss_D.backward()
+            # optimizer_D.step()
+
+            # # =================
+            # # Train Generator
+            # # =================
+            # generator.zero_grad()
+        
+
+
+            # if fake.shape[2:] != real.shape[2:]:
+            #     h = min(fake.shape[2], real.shape[2])
+            #     w = min(fake.shape[3], real.shape[3])
+            #     fake = fake[:, :, :h, :w]
+            #     real = real[:, :, :h, :w]
+
+            # # Adversarial loss
+            # loss_adv = adv_criterion(fake_pred, torch.ones_like(fake_pred))
+            
+            # # L1 loss
+            # loss_l1 = l1(fake, real)
+            
+            # # Perceptual loss
+            # loss_vgg = perceptual(fake, real)
+            
+            # # Total generator loss
+            # loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
+            
+            # loss_G.backward(retain_graph=True)
+            # optimizer_G.step()
+
             # Print progress
             if epoch % 100 == 0:
                 print(f"Epoch {epoch}/{opt.niter}: "
@@ -289,6 +359,16 @@ def train_single_image_with_funiegan(opt, global_step):
                     "Current Scale": scale_num,
                     "Epoch in Scale": epoch
                 }, step=global_step)
+                
+                # wandb.log({
+                #     f"scale_{scale_num}/D_loss": loss_D.item(),
+                #     f"scale_{scale_num}/G_loss": loss_G.item(),
+                #     f"scale_{scale_num}/Adv_loss": loss_adv.item(),
+                #     f"scale_{scale_num}/L1_loss": loss_l1.item(),
+                #     f"scale_{scale_num}/VGG_loss": loss_vgg.item(),
+                # }, step=epoch)
+                
+            
 
             # Save sample images
             if epoch % 500 == 0 or epoch == opt.niter - 1:
@@ -296,11 +376,12 @@ def train_single_image_with_funiegan(opt, global_step):
                     fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
 
+                    #wandb.log({f"scale_{scale_num}/generated_image_epoch_{epoch}": wandb.Image(fake_sample)}, step=epoch)
                     
                     # Save real image for comparison
                     if epoch == 0:
                         save_image(real, f"{opt.outf}/real.png")
-                        
+                        #wandb.log({f"scale_{scale_num}/real_image": wandb.Image(real[0])}, step=epoch)
 
 
 
@@ -329,8 +410,6 @@ def train_single_image_with_funiegan(opt, global_step):
         'reals': reals,
         'opt': opt,
     }, final_model_path)
-
-    #change the name to something else in his code 
     
     print(f"\nTraining completed! Final model saved to {final_model_path}")
     return Gs, Zs, reals, NoiseAmp, global_step
@@ -359,6 +438,7 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5, global_step=No
         # Save sample
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
 
+        #wandb.log({f"random_sample_{i+1}": wandb.Image(sample[0])})
 
     
     print(f"Samples saved to {samples_dir}")
@@ -421,5 +501,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
