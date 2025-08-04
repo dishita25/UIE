@@ -123,7 +123,7 @@ def train_single_image_with_funiegan(opt, global_step):
     reals = functions.creat_reals_pyramid(real, reals, opt)
 
     blur_ = functions.read_blur_image(opt)
-    blur = imresize(gt_, opt.scale1, opt)
+    blur = imresize(blur_, opt.scale1, opt)
     blur_ = resize_tensor_to_multiple_of_32(gt_, opt)
     blurs = []
     blurs = functions.creat_reals_pyramid(gt, gts, opt)
