@@ -668,7 +668,7 @@ def train_single_image_with_funiegan(opt):
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
                 prev = m_image(prev)
                 
-                z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, 'rec', m_noise, m_image, opt)
+                z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
                 real_img, z_prev = functions.align_tensors(real_img, z_prev)
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
@@ -795,7 +795,7 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
     for i in range(num_samples):
         print(f"Generating sample {i+1}/{num_samples}")
         
-        sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, 'rand', m_noise, m_image, opt)
+        sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, m_image, opt)
         
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
     
