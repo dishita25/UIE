@@ -867,7 +867,7 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
             G_z = G(z_in.detach())
 
             # Upscale for next scale
-            G_z = imresize(G_z, 1 / opt.scale_factor, opt)
+            G_z = imresize(G_z, 1 / opt.scale_factor_init, opt)
             G_z = G_z[:, :, 0:blur_next.shape[2], 0:blur_next.shape[3]]
 
     return G_z
