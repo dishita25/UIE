@@ -126,7 +126,7 @@ def train_single_image_with_funiegan(opt, global_step):
     blur = imresize(blur_, opt.scale1, opt)
     blur_ = resize_tensor_to_multiple_of_32(blur_, opt)
     blurs = []
-    blurs = functions.creat_reals_pyramid(real, reals, opt)
+    blurs = functions.creat_reals_pyramid(blur, blurs, opt)
     
     print(f"Created pyramid with {len(reals)} scales")
     for i, r in enumerate(reals):
@@ -275,7 +275,7 @@ def train_single_image_with_funiegan(opt, global_step):
             # This ensures a fresh computational graph for the generator
             # fake_for_G = generator(noise)
             # fake_pred_G = discriminator(fake_for_G, real) # Used for Generator
-
+            h, w = noise.shape[2], noise.shape[3]
             pad_h = (16 - h % 16) % 16
             pad_w = (16 - w % 16) % 16
 
