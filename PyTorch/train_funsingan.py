@@ -124,9 +124,9 @@ def train_single_image_with_funiegan(opt, global_step):
 
     blur_ = functions.read_blur_image(opt)
     blur = imresize(blur_, opt.scale1, opt)
-    blur_ = resize_tensor_to_multiple_of_32(gt_, opt)
+    blur_ = resize_tensor_to_multiple_of_32(blur_, opt)
     blurs = []
-    blurs = functions.creat_reals_pyramid(gt, gts, opt)
+    blurs = functions.creat_reals_pyramid(real, reals, opt)
     
     print(f"Created pyramid with {len(reals)} scales")
     for i, r in enumerate(reals):
