@@ -845,79 +845,106 @@ def dilate_mask(mask,opt):
 
 # MODIFIED: Main function where noise injection happens - now uses blur input
 # MODIFIED: Main function where noise injection happens - now uses blur input
-def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
+
+def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
+    """
+    Image enhancement via multi-scale generator cascade.
+    Assumes in_s is a real (low-quality) image to enhance.
+    """
     G_z = in_s
     if len(Gs) > 0:
-        if mode == 'rand':
-            count = 0
-            pad_noise = int(((opt.ker_size-1)*opt.num_layer)/2)
-            if opt.mode == 'animation_train':
-                pad_noise = 0
-            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
-                # Determine the size for the blur input for the current scale
-                # Z_opt.shape gives the desired spatial dimensions before padding for noise input
-                target_h = Z_opt.shape[2] - 2 * pad_noise
-                target_w = Z_opt.shape[3] - 2 * pad_noise
-                
-                if count == 0:
-                    # For the first scale (coarsest), we use 3 channels for the blur input.
-                    blur_input_size = [3, target_h, target_w] # Assuming 3 channels for initial input
-                else:
-                    # For subsequent scales, use opt.nc_z channels, which is typically 3
-                    blur_input_size = [opt.nc_z, target_h, target_w]
+        for idx, (G, Z_opt, blur_curr, blur_next, noise_amp) in enumerate(zip(Gs, Zs, blurs, blurs[1:], NoiseAmp)):
+            # Resize to match current scale
+            G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
+            G_z = m_image(G_z)
 
-                # MODIFIED: Use blur input instead of noise
-                # Pass opt.blur_image_path to the function
-                z = generate_blur_input(blur_input_size, 
-                                        num_samp=1, 
-                                        device=opt.device, 
-                                        blur_image_path=opt.blur_image_path,
-                                        scale=1) # Scale is managed internally by target_h, target_w
+            # Optional: generate small noise or skip entirely
+            z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
+            z, G_z = align_tensors(z, G_z)
+            z_in = G_z + noise_amp * z  # weak noise to avoid artifacts
 
-                # If the generated 'z' has different channel count than expected for the GAN
-                # (e.g., if blur_input_size was 3 but opt.nc_z is 1, or vice versa)
-                # Ensure 'z' channels match 'opt.nc_z' for subsequent layers if needed,
-                # or match 'real_curr' channels for the first layer.
-                # The generate_blur_input function is now more robust in handling this.
-                if count == 0 and z.shape[1] != real_curr.shape[1]:
-                    # For the first scale, ensure channels match real_curr if they somehow don't after blur_input generation
-                    if real_curr.shape[1] == 1 and z.shape[1] == 3:
-                        z = torch.mean(z, dim=1, keepdim=True)
-                    elif real_curr.shape[1] == 3 and z.shape[1] == 1:
-                        z = z.expand(-1, 3, -1, -1)
-                elif count > 0 and z.shape[1] != opt.nc_z:
-                    # For subsequent scales, ensure channels match opt.nc_z if they don't
-                    if opt.nc_z == 1 and z.shape[1] == 3:
-                        z = torch.mean(z, dim=1, keepdim=True)
-                    elif opt.nc_z == 3 and z.shape[1] == 1:
-                        z = z.expand(-1, 3, -1, -1)
-                
-                z = m_noise(z)
-                G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
-                G_z = m_image(G_z)
-                z, G_z = align_tensors(z, G_z)
-                z_in = noise_amp*z+G_z
-                G_z = G(z_in.detach())
-                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
-                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
-                count += 1
-        if mode == 'rec':
-            # The 'rec' mode for noise generation should ideally still use the original noise
-            # for reconstruction, or a consistent "fixed" blur input if you want the GAN
-            # to reconstruct based on a blurry version.
-            # For typical GAN training, 'rec' mode uses the fixed Z_opt for reconstruction.
-            # No change needed here if Z_opt is what's intended for reconstruction.
-            count = 0
-            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
-                G_z = G_z[:, :, 0:real_curr.shape[2], 0:real_curr.shape[3]]
-                G_z = m_image(G_z)
-                Z_opt, G_z = align_tensors(Z_opt, G_z)
-                z_in = noise_amp*Z_opt+G_z # Z_opt is the optimized noise, not the random blur input
-                G_z = G(z_in.detach())
-                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
-                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
-                count += 1
+            # Refine image
+            G_z = G(z_in.detach())
+
+            # Upscale for next scale
+            G_z = imresize(G_z, 1 / opt.scale_factor, opt)
+            G_z = G_z[:, :, 0:blur_next.shape[2], 0:blur_next.shape[3]]
+
     return G_z
+
+# def draw_concat(Gs,Zs,reals,NoiseAmp,in_s,mode,m_noise,m_image,opt):
+#     G_z = in_s
+#     if len(Gs) > 0:
+#         if mode == 'rand':
+#             count = 0
+#             pad_noise = int(((opt.ker_size-1)*opt.num_layer)/2)
+#             if opt.mode == 'animation_train':
+#                 pad_noise = 0
+#             for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
+#                 # Determine the size for the blur input for the current scale
+#                 # Z_opt.shape gives the desired spatial dimensions before padding for noise input
+#                 target_h = Z_opt.shape[2] - 2 * pad_noise
+#                 target_w = Z_opt.shape[3] - 2 * pad_noise
+                
+#                 if count == 0:
+#                     # For the first scale (coarsest), we use 3 channels for the blur input.
+#                     blur_input_size = [3, target_h, target_w] # Assuming 3 channels for initial input
+#                 else:
+#                     # For subsequent scales, use opt.nc_z channels, which is typically 3
+#                     blur_input_size = [opt.nc_z, target_h, target_w]
+
+#                 # MODIFIED: Use blur input instead of noise
+#                 # Pass opt.blur_image_path to the function
+#                 z = generate_blur_input(blur_input_size, 
+#                                         num_samp=1, 
+#                                         device=opt.device, 
+#                                         blur_image_path=opt.blur_image_path,
+#                                         scale=1) # Scale is managed internally by target_h, target_w
+
+#                 # If the generated 'z' has different channel count than expected for the GAN
+#                 # (e.g., if blur_input_size was 3 but opt.nc_z is 1, or vice versa)
+#                 # Ensure 'z' channels match 'opt.nc_z' for subsequent layers if needed,
+#                 # or match 'real_curr' channels for the first layer.
+#                 # The generate_blur_input function is now more robust in handling this.
+#                 if count == 0 and z.shape[1] != real_curr.shape[1]:
+#                     # For the first scale, ensure channels match real_curr if they somehow don't after blur_input generation
+#                     if real_curr.shape[1] == 1 and z.shape[1] == 3:
+#                         z = torch.mean(z, dim=1, keepdim=True)
+#                     elif real_curr.shape[1] == 3 and z.shape[1] == 1:
+#                         z = z.expand(-1, 3, -1, -1)
+#                 elif count > 0 and z.shape[1] != opt.nc_z:
+#                     # For subsequent scales, ensure channels match opt.nc_z if they don't
+#                     if opt.nc_z == 1 and z.shape[1] == 3:
+#                         z = torch.mean(z, dim=1, keepdim=True)
+#                     elif opt.nc_z == 3 and z.shape[1] == 1:
+#                         z = z.expand(-1, 3, -1, -1)
+                
+#                 z = m_noise(z)
+#                 G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
+#                 G_z = m_image(G_z)
+#                 z, G_z = align_tensors(z, G_z)
+#                 z_in = noise_amp*z+G_z
+#                 G_z = G(z_in.detach())
+#                 G_z = imresize(G_z,1/opt.scale_factor_init,opt)
+#                 G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+#                 count += 1
+#         if mode == 'rec':
+#             # The 'rec' mode for noise generation should ideally still use the original noise
+#             # for reconstruction, or a consistent "fixed" blur input if you want the GAN
+#             # to reconstruct based on a blurry version.
+#             # For typical GAN training, 'rec' mode uses the fixed Z_opt for reconstruction.
+#             # No change needed here if Z_opt is what's intended for reconstruction.
+#             count = 0
+#             for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,reals,reals[1:],NoiseAmp):
+#                 G_z = G_z[:, :, 0:real_curr.shape[2], 0:real_curr.shape[3]]
+#                 G_z = m_image(G_z)
+#                 Z_opt, G_z = align_tensors(Z_opt, G_z)
+#                 z_in = noise_amp*Z_opt+G_z # Z_opt is the optimized noise, not the random blur input
+#                 G_z = G(z_in.detach())
+#                 G_z = imresize(G_z,1/opt.scale_factor_init,opt)
+#                 G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+#                 count += 1
+#     return G_z
 
 def align_tensors(a, b):
     h = min(a.shape[2], b.shape[2])
