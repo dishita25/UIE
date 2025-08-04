@@ -142,7 +142,7 @@ if __name__ == '__main__':
     elif ep.EUVP:
         eval_data = DataLoader(dataset=get_eval_set("/kaggle/input/euvp-dataset/test_samples/Inp"), num_workers=num_workers, batch_size=1, shuffle=False)
         output_folder = './output/EUVP/'
-        weight_path = './weights/EUVP.pth'  # Trained weights
+        weight_path = './weights/train/epoch_50.pth'  # Trained weights
         norm_size = False 
     
     
