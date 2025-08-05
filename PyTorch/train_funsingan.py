@@ -11,6 +11,7 @@ import functions
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
+import torch.nn.functional as F
 
 def get_config():
     parser = argparse.ArgumentParser()
@@ -140,7 +141,9 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(prev)
                 
                 z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                #real_img, z_prev = functions.align_tensors(real_img, z_prev)
+                #target_size = real_img.shape[2:]
+                #z_prev = F.interpolate(z_prev, size=target_size, mode='bilinear', align_corners=False)
+                real_img, z_prev = functions.align_tensors(real_img, z_prev)
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
