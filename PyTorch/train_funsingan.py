@@ -140,7 +140,7 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(prev)
                 
                 z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                real_img, z_prev = functions.align_tensors(real_img, z_prev)
+                //real_img, z_prev = functions.align_tensors(real_img, z_prev)
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
