@@ -200,7 +200,7 @@ def train_single_image_with_funiegan(opt):
             loss_l1 = l1(fake, real_img_resized)
             loss_vgg = perceptual(fake, real_img_resized)
             
-            loss_G = loss_adv + 10 * loss_l1 + 12 * loss_vgg
+            loss_G = loss_adv + 10 * loss_l1 + 3 * loss_vgg
             
             loss_G.backward()
             optimizer_G.step()
