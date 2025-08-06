@@ -320,7 +320,7 @@
 # if __name__ == '__main__':
 #     main()
 
-
+#NEW CODE
 
 import os
 import math
@@ -337,11 +337,8 @@ from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
 import torch.nn.functional as F
 
-# get_config() remains unchanged, as it's for argument parsing.
-
 def get_config():
     parser = argparse.ArgumentParser()
-    # ... (all your existing arguments)
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
     # Path for the ground truth (real) image
     parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Input directory")
@@ -402,7 +399,6 @@ def train_single_image_with_funiegan(opt):
     blur = imresize(blur_, opt.scale1, opt)
     blur_ = resize_tensor_to_multiple_of_32(blur_, opt)
     blurs = []
-    # Both pyramids are created with the same scale factors
     blurs = functions.creat_reals_pyramid(blur, blurs, opt)
     
     # Read and preprocess the ground truth (real) image
@@ -412,12 +408,10 @@ def train_single_image_with_funiegan(opt):
     reals = []
     reals = functions.creat_reals_pyramid(real, reals, opt)
     
-    # It's a good practice to check if the pyramids have the same lengths and sizes
-    assert len(reals) == len(blurs)
     print(f"Created pyramid with {len(reals)} scales")
 
     Gs, Zs, NoiseAmp = [], [], []
-    in_s = torch.full_like(blurs[0], 0, device=opt.device)
+    in_s = blur_
 
     for scale_num in range(opt.stop_scale + 1):
         print(f"\n=== Training Scale {scale_num} ===")
@@ -436,13 +430,6 @@ def train_single_image_with_funiegan(opt):
         opt.nzx, opt.nzy = blur_img.shape[2], blur_img.shape[3]
         print(f"Blur image shape: {blur_img.shape}")
         print(f"Real image shape: {real_img.shape}")
-        
-        # Check to ensure shapes are identical
-        if blur_img.shape != real_img.shape:
-             print(f"Warning: Shapes of blur_img {blur_img.shape} and real_img {real_img.shape} do not match. This should not happen with the corrected `creat_reals_pyramid`.")
-             # You might need to manually align them if the previous step failed, but this should be avoided.
-             real_img, blur_img = functions.align_tensors(real_img, blur_img)
-
 
         generator = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
@@ -464,33 +451,45 @@ def train_single_image_with_funiegan(opt):
         fixed_noise = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
         z_opt = torch.full_like(fixed_noise, 0)
         z_opt = m_noise(z_opt)
-        
+
         for epoch in range(opt.niter):
-            # The input to the generator is `prev` from the previous scale, plus some noise
-            # or in the first scale, it's just the blurry image.
-            
-            # This is a critical line. `noise` is now the conditional input for the generator.
+            noise_ = functions.generate_noise([opt.nc_z, opt.nzx, opt.nzy], device=opt.device)
+            noise_ = m_noise(noise_)
+
             if scale_num == 0:
                 prev = m_image(blur_img)
                 opt.noise_amp = opt.noise_amp_init
+                noise = prev
             else:
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                prev = imresize(prev, blur_img.shape[2], blur_img.shape[3]) # Ensure size matches
                 prev = m_image(prev)
                 
-            noise = prev # The noise input is essentially the output of the previous cascade
+                z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
+                #target_size = real_img.shape[2:]
+                #z_prev = F.interpolate(z_prev, size=target_size, mode='bilinear', align_corners=False)
+                # FIX: Remove manual alignment here, it causes distortion.
+                #real_img, z_prev = functions.align_tensors(real_img, z_prev)
+                rmse = torch.sqrt(mse(real_img, z_prev))
+                opt.noise_amp = opt.noise_amp_init * rmse
+                z_prev = m_image(z_prev)
+                noise = prev
+
+            if prev.shape != noise_.shape:
+                prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
+            
+            # FIX: Concatenate the noise and the previous output to form a single input
+            # This is the crucial part that fixes the TypeError
+            noise = torch.cat([prev, noise_], dim=1)
+
 
             # Train Discriminator
             discriminator.zero_grad()
-            
             # The 'real_img' (GT) is conditioned on the 'blur_img' (distorted input)
             real_pred = discriminator(real_img, blur_img)
             real_loss = mse(real_pred, torch.ones_like(real_pred))
             
-            # The `fake` image is generated from the previous cascade output (`noise`)
-            # and conditioned on the current blur image.
-            # This is the conditional part.
-            fake = generator(noise.detach(), blur_img)
+            # FIX: Pass the single concatenated noise tensor to the generator
+            fake = generator(noise.detach())
             fake_pred = discriminator(fake.detach(), blur_img)
             fake_loss = mse(fake_pred, torch.zeros_like(fake_pred))
             
@@ -506,15 +505,34 @@ def train_single_image_with_funiegan(opt):
             # Train Generator
             generator.zero_grad()
             
-            # `fake` image generation is now G(noise, blur_img)
-            fake = generator(noise, blur_img)
+            h, w = noise.shape[2], noise.shape[3]
+            pad_h = (16 - h % 16) % 16
+            pad_w = (16 - w % 16) % 16
+            
+            if pad_h > 0 or pad_w > 0:
+                noise_padded = torch.nn.functional.pad(noise, (0, pad_w, 0, pad_h), mode='reflect')
+                # FIX: Pass the single concatenated noise tensor to the generator
+                fake = generator(noise_padded)
+                fake = fake[:, :, :h, :w]
+            else:
+                # FIX: Pass the single concatenated noise tensor to the generator
+                fake = generator(noise)
+                
             fake_pred = discriminator(fake, blur_img)
 
-            # The reconstruction and perceptual losses are now calculated directly.
-            # No need for manual slicing, as `fake` and `real_img` should have the same shape.
+            if fake.shape[2:] != real_img.shape[2:]:
+                h = min(fake.shape[2], real_img.shape[2])
+                w = min(fake.shape[3], real_img.shape[3])
+                fake = fake[:, :, :h, :w]
+                real_img_resized = real_img[:, :, :h, :w]
+            else:
+                real_img_resized = real_img
+
             loss_adv = mse(fake_pred, torch.ones_like(fake_pred))
-            loss_l1 = l1(fake, real_img)
-            loss_vgg = perceptual(fake, real_img)
+            
+            # Reconstruction and perceptual losses are against 'real_img' (GT)
+            loss_l1 = l1(fake, real_img_resized)
+            loss_vgg = perceptual(fake, real_img_resized)
             
             loss_G = loss_adv + 10 * loss_l1 + 3 * loss_vgg
             
@@ -531,8 +549,8 @@ def train_single_image_with_funiegan(opt):
 
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
-                    # The sample generation also uses the combined input
-                    fake_sample = generator(noise, blur_img)
+                    # FIX: Pass the single concatenated noise tensor to the generator
+                    fake_sample = generator(noise)
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
                     
                     if epoch == 0:
@@ -542,7 +560,6 @@ def train_single_image_with_funiegan(opt):
         Gs.append(generator.eval())
         Zs.append(z_opt)
         NoiseAmp.append(opt.noise_amp)
-        in_s = imresize(in_s, blur_img.shape[2], blur_img.shape[3]) # Keep track of the cascade input
 
         torch.save({
             'generator': generator.state_dict(),
@@ -560,15 +577,14 @@ def train_single_image_with_funiegan(opt):
         'Zs': Zs,
         'NoiseAmp': NoiseAmp,
         'reals': reals,
-        'blurs': blurs,
         'opt': opt,
     }, final_model_path)
     
     print(f"\nTraining completed! Final model saved to {final_model_path}")
-    return Gs, Zs, reals, NoiseAmp, blurs
+    return Gs, Zs, reals, NoiseAmp
 
 
-def generate_samples(opt, Gs, Zs, blurs, NoiseAmp, num_samples=5):
+def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
     """Generate random samples using trained model"""
     print(f"\nGenerating {num_samples} random samples...")
     
@@ -576,16 +592,16 @@ def generate_samples(opt, Gs, Zs, blurs, NoiseAmp, num_samples=5):
     os.makedirs(samples_dir, exist_ok=True)
     
     pad_noise = int(((opt.ker_size - 1) * opt.num_layer) / 2)
+    m_noise = nn.ZeroPad2d(pad_noise)
     m_image = nn.ZeroPad2d(pad_noise)
     
-    # The 'in_s' is the input to the cascade
-    in_s = torch.full_like(blurs[0], 0, device=opt.device)
+    # The 'reals' here actually refers to the pyramid of ground truth images
+    in_s = torch.full_like(reals[0], 0, device=opt.device)
     
     for i in range(num_samples):
         print(f"Generating sample {i+1}/{num_samples}")
         
-        # Use the corrected draw_concat which handles the blur pyramid
-        sample = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
+        sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, m_image, opt)
         
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
     
@@ -605,8 +621,8 @@ def main():
     print("=" * 50)
     
     if opt.mode == 'train':
-        Gs, Zs, reals, NoiseAmp, blurs = train_single_image_with_funiegan(opt)
-        generate_samples(opt, Gs, Zs, blurs, NoiseAmp, num_samples=5)
+        Gs, Zs, reals, NoiseAmp = train_single_image_with_funiegan(opt)
+        generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5)
         
     elif opt.mode == 'random_samples':
         final_model_path = os.path.join(functions.generate_dir2save(opt), "final_model.pth")
@@ -623,9 +639,8 @@ def main():
             Zs = checkpoint['Zs']
             NoiseAmp = checkpoint['NoiseAmp']
             reals = checkpoint['reals']
-            blurs = checkpoint['blurs']
             
-            generate_samples(opt, Gs, Zs, blurs, NoiseAmp, num_samples=10)
+            generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=10)
         else:
             print(f"No trained model found at {final_model_path}")
             print("Please train the model first with --mode train")
