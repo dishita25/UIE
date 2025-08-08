@@ -135,11 +135,12 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(blur_img)
                 opt.noise_amp = opt.noise_amp_init
                 noise = prev
+                print(f"Shape of the blur image: {noise.shape}")
             else:
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                print(f"Previous noise shape: {prev.shape}")
+                print(f"Previous blur image shape: {prev.shape}")
                 prev = m_image(prev)
-                print(f"Aligned previous noise shape: {prev.shape}")
+                print(f"Aligned previous blur image shape: {prev.shape}")
                 
                 z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
                 print(f"Previous z shape: {z_prev.shape}")
