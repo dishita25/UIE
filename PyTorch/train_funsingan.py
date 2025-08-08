@@ -30,7 +30,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0005, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0005, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=1, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=2000, help="Number of iterations")
     parser.add_argument("--nc_z", type=int, default=3, help="Number of channels in noise")
     parser.add_argument("--nc_im", type=int, default=3, help="Number of channels in image")
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
@@ -90,7 +90,7 @@ def train_single_image_with_funiegan(opt):
 
     for scale_num in range(opt.stop_scale + 1):
         print(f"\n=== Training Scale {scale_num} ===")
-    
+        
         opt.nfc = min(opt.nfc_init * pow(2, math.floor(scale_num / 4)), 128)
         opt.min_nfc = min(opt.min_nfc_init * pow(2, math.floor(scale_num / 4)), 128)
         
@@ -135,29 +135,21 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(blur_img)
                 opt.noise_amp = opt.noise_amp_init
                 noise = prev
-                print(f"Shape of the blur image: {noise.shape}")
             else:
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                print(f"Previous blur image shape: {prev.shape}")
                 prev = m_image(prev)
-                print(f"Aligned previous blur image shape: {prev.shape}")
                 
                 z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                print(f"Previous z shape: {z_prev.shape}")
                 real_img, z_prev = functions.align_tensors(real_img, z_prev)
-                print(f"Aligned previous z shape: {z_prev.shape}")
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
-                print(f"Aligned previous z after padding: {z_prev.shape}")
                 noise = prev
-                print(f"Noise shape: {noise.shape}")
 
             if prev.shape != noise_.shape:
                 prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
             
             noise = prev
-            print(f"Noise after interpolation shape: {noise.shape}")
 
             # Train Discriminator
             discriminator.zero_grad()
