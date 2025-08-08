@@ -553,7 +553,7 @@ def train_single_image_with_funiegan(opt):
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
                     # Save aligned generated image to avoid distortions in output files
-                    fake_sample_aligned, _ = align_tensors(real_img, fake)
+                    (fake_sample_aligned,) = align_tensors(real_img, fake)
                     save_image(fake_sample_aligned, f"{opt.outf}/fake_epoch_{epoch}.png")
 
                     if epoch == 0:
