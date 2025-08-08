@@ -30,7 +30,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0005, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0005, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=2000, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=1, help="Number of iterations")
     parser.add_argument("--nc_z", type=int, default=3, help="Number of channels in noise")
     parser.add_argument("--nc_im", type=int, default=3, help="Number of channels in image")
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
