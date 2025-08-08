@@ -135,20 +135,27 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(blur_img)
                 opt.noise_amp = opt.noise_amp_init
                 noise = prev
+                print(f"Initial blur image shape: {blur_img.shape}, Blur image shape after padding: {noise.shape}")
             else:
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
+                print(f"prev shape after draw_concat: {prev.shape}")
                 prev = m_image(prev)
+                print(f"prev shape after padding: {prev.shape}")
                 
                 z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
+                print(f"z_prev shape after draw_concat: {z_prev.shape}")
                 real_img, z_prev = functions.align_tensors(real_img, z_prev)
+                print(f"real_img shape after alignment: {real_img.shape}, z_prev shape after alignment: {z_prev.shape}")
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
+                print(f"z_prev shape after padding: {z_prev.shape}")
                 noise = prev
 
             if prev.shape != noise_.shape:
                 prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
-            
+                print(f"prev shape after interpolation if(noise shape is not equal prev shape): {prev.shape}")
+
             noise = prev
 
             # Train Discriminator
