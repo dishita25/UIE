@@ -854,9 +854,12 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
     G_z = in_s
     if len(Gs) > 0:
         for idx, (G, Z_opt, blur_curr, blur_next, noise_amp) in enumerate(zip(Gs, Zs, blurs, blurs[1:], NoiseAmp)):
+            print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}, blur_next shape: {blur_next.shape}")
             # Resize to match current scale
             G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
+            print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
             G_z = m_image(G_z)
+            print(f"G_z shape after padding: {G_z.shape}")
 
             # Optional: generate small noise or skip entirely
             z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
@@ -869,6 +872,7 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
             # Upscale for next scale
             G_z = imresize(G_z, 1 / opt.scale_factor_init, opt)
             G_z = G_z[:, :, 0:blur_next.shape[2], 0:blur_next.shape[3]]
+            print(f"G_z shape after upscaling: {G_z.shape}")
 
     return G_z
 
