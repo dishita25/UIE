@@ -137,7 +137,10 @@ def train_single_image_with_funiegan(opt):
                 noise = prev
                 print(f"Initial blur image shape: {blur_img.shape}, Blur image shape after padding: {noise.shape}")
             else:
+                #print(f"prev shape before draw_concat: {prev.shape}")
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
+                print(f"Gs shape: {[g.shape for g in Gs]}")
+                print(f"Zs shape: {[z.shape for z in Zs]}")
                 print(f"prev shape after draw_concat: {prev.shape}")
                 prev = m_image(prev)
                 print(f"prev shape after padding: {prev.shape}")
@@ -157,6 +160,7 @@ def train_single_image_with_funiegan(opt):
                 print(f"prev shape after interpolation if(noise shape is not equal prev shape): {prev.shape}")
 
             noise = prev
+            print(f"Noise shape: {noise.shape}")
 
             # Train Discriminator
             discriminator.zero_grad()
@@ -165,6 +169,7 @@ def train_single_image_with_funiegan(opt):
             real_loss = mse(real_pred, torch.ones_like(real_pred))
             
             fake = generator(noise.detach())
+            print(f"Fake pred shape: {fake.shape}, Real pred shape: {real_pred.shape}")
             fake_pred = discriminator(fake.detach(), blur_img)
             fake_loss = mse(fake_pred, torch.zeros_like(fake_pred))
             
