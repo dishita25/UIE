@@ -139,8 +139,7 @@ def train_single_image_with_funiegan(opt):
             else:
                 #print(f"prev shape before draw_concat: {prev.shape}")
                 prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
-                print(f"Gs shape: {[g.shape for g in Gs]}")
-                print(f"Zs shape: {[z.shape for z in Zs]}")
+                print(f"in_s shape- draw_concat: {in_s.shape}")
                 print(f"prev shape after draw_concat: {prev.shape}")
                 prev = m_image(prev)
                 print(f"prev shape after padding: {prev.shape}")
