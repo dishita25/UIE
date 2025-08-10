@@ -846,40 +846,89 @@ def dilate_mask(mask,opt):
 # MODIFIED: Main function where noise injection happens - now uses blur input
 # MODIFIED: Main function where noise injection happens - now uses blur input
 
-def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
-    """
-    Image enhancement via multi-scale generator cascade.
-    Assumes in_s is a real (low-quality) image to enhance.
-    """
+# def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
+#     """
+#     Image enhancement via multi-scale generator cascade.
+#     Assumes in_s is a real (low-quality) image to enhance.
+#     """
+#     G_z = in_s
+#     if len(Gs) > 0:
+#         for idx, (G, Z_opt, blur_curr, blur_next, noise_amp) in enumerate(zip(Gs, Zs, blurs, blurs[1:], NoiseAmp)):
+#             print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}, blur_next shape: {blur_next.shape}")
+#             # Resize to match current scale
+#             G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
+#             print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
+#             G_z = m_image(G_z)
+#             print(f"G_z shape after padding: {G_z.shape}")
+
+#             # Optional: generate small noise or skip entirely
+#             z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
+#             z, G_z = align_tensors(z, G_z)
+#             print(f"G_z shape after alignment: {G_z.shape}")
+#             z_in = G_z + noise_amp * z  # weak noise to avoid artifacts
+#             print(f"z_in shape: {z_in.shape}")     
+
+#             # Refine image
+#             G_z = G(z_in.detach())
+#             print(f"G_z shape after detach function: {G_z.shape}")
+
+#             # Upscale for next scale
+#             G_z = imresize(G_z, 1 / opt.scale_factor_init, opt)
+#             print(f"G_z shape after imresize: {G_z.shape}")
+#             G_z = G_z[:, :, 0:blur_next.shape[2], 0:blur_next.shape[3]]
+#             print(f"G_z shape after upscaling: {G_z.shape}")
+
+#     return G_z
+
+
+def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
     G_z = in_s
     if len(Gs) > 0:
-        for idx, (G, Z_opt, blur_curr, blur_next, noise_amp) in enumerate(zip(Gs, Zs, blurs, blurs[1:], NoiseAmp)):
-            print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}, blur_next shape: {blur_next.shape}")
-            # Resize to match current scale
-            G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
-            print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
-            G_z = m_image(G_z)
-            print(f"G_z shape after padding: {G_z.shape}")
-
-            # Optional: generate small noise or skip entirely
-            z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
-            z, G_z = align_tensors(z, G_z)
-            print(f"G_z shape after alignment: {G_z.shape}")
-            z_in = G_z + noise_amp * z  # weak noise to avoid artifacts
-            print(f"z_in shape: {z_in.shape}")     
-
-            # Refine image
-            G_z = G(z_in.detach())
-            print(f"G_z shape after detach function: {G_z.shape}")
-
-            # Upscale for next scale
-            G_z = imresize(G_z, 1 / opt.scale_factor_init, opt)
-            print(f"G_z shape after imresize: {G_z.shape}")
-            G_z = G_z[:, :, 0:blur_next.shape[2], 0:blur_next.shape[3]]
-            print(f"G_z shape after upscaling: {G_z.shape}")
-
+        if mode == 'rand':
+            count = 0
+            pad_noise = int(((opt.ker_size-1)*opt.num_layer)/2)
+            if opt.mode == 'animation_train':
+                pad_noise = 0
+            for G,Z_opt,blur_curr,blur_next,noise_amp in zip(Gs,Zs,blurs,blurs[1:],NoiseAmp):
+                print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}, blur_next shape: {blur_next.shape}")
+                if count == 0:
+                    z = generate_noise([1, Z_opt.shape[2] - 2 * pad_noise, Z_opt.shape[3] - 2 * pad_noise], device=opt.device)
+                    z = z.expand(1, 3, z.shape[2], z.shape[3])
+                else:
+                    z = generate_noise([opt.nc_z,Z_opt.shape[2] - 2 * pad_noise, Z_opt.shape[3] - 2 * pad_noise], device=opt.device)
+                z = m_noise(z)
+                G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
+                print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
+                G_z = m_image(G_z)
+                print(f"G_z shape after padding: {G_z.shape}")
+                z_in = noise_amp*z+G_z
+                print(f"z_in shape: {z_in.shape}") 
+                G_z = G(z_in.detach(),G_z)
+                print(f"G_z shape after detach function: {G_z.shape}")
+                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                print(f"G_z shape after imresize: {G_z.shape}")
+                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                print(f"G_z shape after upscaling: {G_z.shape}")
+                count += 1
+        if mode == 'rec':
+            count = 0
+            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,blurs,blurs[1:],NoiseAmp):
+                G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
+                print(f"G_z (rec) shape after resizing to match the current scale: {G_z.shape}")
+                G_z = m_image(G_z)
+                print(f"G_z (rec) shape after padding: {G_z.shape}")
+                z_in = noise_amp*Z_opt+G_z
+                print(f"z_in (rec) shape: {z_in.shape}") 
+                G_z = G(z_in.detach(),G_z)
+                print(f"G_z (rec) shape after detach function: {G_z.shape}")
+                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                print(f"G_z (rec) shape after imresize: {G_z.shape}")
+                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                print(f"G_z (rec) shape after upscaling: {G_z.shape}")
+                #if count != (len(Gs)-1):
+                #    G_z = m_image(G_z)
+                count += 1
     return G_z
-
 
 def align_tensors(a, b):
     h = min(a.shape[2], b.shape[2])
