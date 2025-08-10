@@ -138,13 +138,13 @@ def train_single_image_with_funiegan(opt):
                 print(f"Initial blur image shape: {blur_img.shape}, Blur image shape after padding: {noise.shape}")
             else:
                 #print(f"prev shape before draw_concat: {prev.shape}")
-                prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, "rand", m_noise, m_image, opt)
+                prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
                 print(f"in_s shape- draw_concat: {in_s.shape}")
                 print(f"prev shape after draw_concat: {prev.shape}")
                 prev = m_image(prev)
                 print(f"prev shape after padding: {prev.shape}")
                 
-                z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, "rec", m_noise, m_image, opt)
+                z_prev = functions.draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt)
                 print(f"z_prev shape after draw_concat: {z_prev.shape}")
                 real_img, z_prev = functions.align_tensors(real_img, z_prev)
                 print(f"real_img shape after alignment: {real_img.shape}, z_prev shape after alignment: {z_prev.shape}")
@@ -277,7 +277,7 @@ def generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5):
     for i in range(num_samples):
         print(f"Generating sample {i+1}/{num_samples}")
         
-        sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, "rand", m_noise, m_image, opt)
+        sample = functions.draw_concat(Gs, Zs, reals, NoiseAmp, in_s, m_image, opt)
         
         save_image(sample, f"{samples_dir}/random_sample_{i+1}.png")
     
