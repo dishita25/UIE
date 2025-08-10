@@ -864,10 +864,13 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
             # Optional: generate small noise or skip entirely
             z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
             z, G_z = align_tensors(z, G_z)
+            print(f"G_z shape after alignment: {G_z.shape}")
             z_in = G_z + noise_amp * z  # weak noise to avoid artifacts
+            print(f"z_in shape: {z_in.shape}")     
 
             # Refine image
             G_z = G(z_in.detach())
+            print(f"G_z shape after detach function: {G_z.shape}")
 
             # Upscale for next scale
             G_z = imresize(G_z, 1 / opt.scale_factor_init, opt)

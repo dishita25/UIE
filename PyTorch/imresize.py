@@ -67,6 +67,7 @@ def imresize_to_shape(im,output_shape,opt):
 def imresize_in(im, scale_factor=None, output_shape=None, kernel=None, antialiasing=True, kernel_shift_flag=False):
     # First standardize values and fill missing arguments (if needed) by deriving scale from output shape or vice versa
     scale_factor, output_shape = fix_scale_and_size(im.shape, output_shape, scale_factor)
+    print(f"Output shape: {output_shape}")
 
     # For a given numeric kernel case, just do convolution and sub-sampling (downscaling only)
     if type(kernel) == np.ndarray and scale_factor[0] <= 1:
@@ -99,7 +100,7 @@ def imresize_in(im, scale_factor=None, output_shape=None, kernel=None, antialias
         # weights that multiply the values there to get its result.
         weights, field_of_view = contributions(im.shape[dim], output_shape[dim], scale_factor[dim],
                                                method, kernel_width, antialiasing)
-
+        print(f"weights after contributions: {weights.shape}")
         # Use the affecting position values and the set of weights to calculate the result of resizing along this 1 dim
         out_im = resize_along_dim(out_im, dim, weights, field_of_view)
 
@@ -202,7 +203,7 @@ def resize_along_dim(im, dim, weights, field_of_view):
     # We add singleton dimensions to the weight matrix so we can multiply it with the big tensor we get for
     # tmp_im[field_of_view.T], (bsxfun style)
     weights = np.reshape(weights.T, list(weights.T.shape) + (np.ndim(im) - 1) * [1])
-
+    print(f"weights shape after being reshaped: {weights.shape}")
     # This is a bit of a complicated multiplication: tmp_im[field_of_view.T] is a tensor of order image_dims+1.
     # for each pixel in the output-image it matches the positions the influence it from the input image (along 1 dim
     # only, this is why it only adds 1 dim to the shape). We then multiply, for each pixel, its set of positions with
