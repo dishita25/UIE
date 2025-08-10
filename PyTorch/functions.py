@@ -513,7 +513,7 @@ def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 #G_z = G(z_in.detach(),G_z)
                 G_z = G(z_in.detach())
                 print(f"G_z shape after detach function: {G_z.shape}")
-                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
                 print(f"G_z shape after imresize: {G_z.shape}")
                 G_z = G_z[:,:,0:blur_next.shape[2],0:blur_next.shape[3]]
                 print(f"G_z shape after upscaling: {G_z.shape}")
@@ -530,7 +530,7 @@ def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 #G_z = G(z_in.detach(),G_z)
                 G_z = G(z_in.detach())
                 print(f"G_z (rec) shape after detach function: {G_z.shape}")
-                G_z = imresize(G_z,1/opt.scale_factor,opt)
+                G_z = imresize(G_z,1/opt.scale_factor_init,opt)
                 print(f"G_z (rec) shape after imresize: {G_z.shape}")
                 G_z = G_z[:,:,0:blur_next.shape[2],0:blur_next.shape[3]]
                 print(f"G_z (rec) shape after upscaling: {G_z.shape}")
