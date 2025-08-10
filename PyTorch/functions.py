@@ -897,7 +897,7 @@ def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 else:
                     z = generate_noise([opt.nc_z,Z_opt.shape[2] - 2 * pad_noise, Z_opt.shape[3] - 2 * pad_noise], device=opt.device)
                 z = m_noise(z)
-                G_z = G_z[:,:,0:real_curr.shape[2],0:real_curr.shape[3]]
+                G_z = G_z[:,:,0:blur_curr.shape[2],0:blur_curr.shape[3]]
                 print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
                 G_z = m_image(G_z)
                 print(f"G_z shape after padding: {G_z.shape}")
@@ -907,12 +907,12 @@ def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 print(f"G_z shape after detach function: {G_z.shape}")
                 G_z = imresize(G_z,1/opt.scale_factor,opt)
                 print(f"G_z shape after imresize: {G_z.shape}")
-                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                G_z = G_z[:,:,0:blur_next.shape[2],0:blur_next.shape[3]]
                 print(f"G_z shape after upscaling: {G_z.shape}")
                 count += 1
         if mode == 'rec':
             count = 0
-            for G,Z_opt,real_curr,real_next,noise_amp in zip(Gs,Zs,blurs,blurs[1:],NoiseAmp):
+            for G,Z_opt,blur_curr,blur_next,noise_amp in zip(Gs,Zs,blurs,blurs[1:],NoiseAmp):
                 G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
                 print(f"G_z (rec) shape after resizing to match the current scale: {G_z.shape}")
                 G_z = m_image(G_z)
@@ -923,7 +923,7 @@ def draw_concat(Gs,Zs,blurs,NoiseAmp,in_s,mode,m_noise,m_image,opt):
                 print(f"G_z (rec) shape after detach function: {G_z.shape}")
                 G_z = imresize(G_z,1/opt.scale_factor,opt)
                 print(f"G_z (rec) shape after imresize: {G_z.shape}")
-                G_z = G_z[:,:,0:real_next.shape[2],0:real_next.shape[3]]
+                G_z = G_z[:,:,0:blur_next.shape[2],0:blur_next.shape[3]]
                 print(f"G_z (rec) shape after upscaling: {G_z.shape}")
                 #if count != (len(Gs)-1):
                 #    G_z = m_image(G_z)
