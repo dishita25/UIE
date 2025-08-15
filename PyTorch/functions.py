@@ -470,6 +470,7 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
 
             # Optional: generate small noise or skip entirely
             z = torch.zeros_like(Z_opt, device=opt.device)  # no noise (or use low-noise)
+            print(f"Z_opt shape: {Z_opt.shape}, z shape before alignment: {z.shape}")
             z, G_z = align_tensors(z, G_z)
             print(f"G_z shape after alignment: {G_z.shape}")
             z_in = G_z + noise_amp * z  # weak noise to avoid artifacts
