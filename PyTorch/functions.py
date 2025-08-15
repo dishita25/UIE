@@ -463,6 +463,8 @@ def draw_concat(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt):
         for idx, (G, Z_opt, blur_curr, blur_next, noise_amp) in enumerate(zip(Gs, Zs, blurs, blurs[1:], NoiseAmp)):
             print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}, blur_next shape: {blur_next.shape}")
             # Resize to match current scale
+            print(f"G_z shape before resizing to match the current scale: {G_z.shape}")
+            print(f"Current blur shape: {blur_curr.shape}")
             G_z = G_z[:, :, 0:blur_curr.shape[2], 0:blur_curr.shape[3]]
             print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
             G_z = m_image(G_z)
