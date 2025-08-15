@@ -121,7 +121,8 @@ else:
 
 ## load weights
 # Load the entire checkpoint dictionary
-checkpoint = torch.load(opt.model_path, map_location=torch.device('cpu'))
+checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_cuda else 'cpu'), weights_only=False)
+
 
 # The 'Gs' key holds a list of generator state dictionaries. 
 # We want the state of the final generator, which is the last one in the list.
