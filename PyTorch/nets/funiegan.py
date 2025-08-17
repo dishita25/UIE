@@ -6,7 +6,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from nets.attention import SpatioChannelAttention 
 
 class UNetDown(nn.Module):
     def __init__(self, in_size, out_size, bn=True):
@@ -52,6 +52,13 @@ class GeneratorFunieGAN(nn.Module):
         self.down3 = UNetDown(128, 256)
         self.down4 = UNetDown(256, 256)
         self.down5 = UNetDown(256, 256, bn=False)
+        
+        # at multiple stages in the network to enrich the feature representations"
+        self.sca_128 = SpatioChannelAttention(128)  # After down2
+        self.sca_256_1 = SpatioChannelAttention(256)  # After down3
+        self.sca_256_2 = SpatioChannelAttention(256)  # After down4
+        self.sca_256_3 = SpatioChannelAttention(256)  # After down5 (bottleneck)
+        
         # decoding layers
         self.up1 = UNetUp(256, 256)
         self.up2 = UNetUp(512, 256)
@@ -67,12 +74,20 @@ class GeneratorFunieGAN(nn.Module):
     def forward(self, x):
         d1 = self.down1(x)
         d2 = self.down2(d1)
+        d2_attention = self.sca_128(d2)
+        
         d3 = self.down3(d2)
+        d3_attention = self.sca_256_1(d3)
+        
         d4 = self.down4(d3)
+        d4_attention = self.sca_256_2(d4)
+        
         d5 = self.down5(d4)
-        u1 = self.up1(d5, d4)
-        u2 = self.up2(u1, d3)
-        u3 = self.up3(u2, d2)
+        d5_attention = self.sca_256_3(d5)
+        
+        u1 = self.up1(d5_attention, d4_attention)
+        u2 = self.up2(u1, d3_attention)
+        u3 = self.up3(u2, d2_attention)
         u45 = self.up4(u3, d1)
         return self.final(u45)
 
@@ -106,6 +121,7 @@ class DiscriminatorFunieGAN(nn.Module):
          w = min(img_A.shape[3], img_B.shape[3])
          img_A = img_A[:, :, :h, :w]
          img_B = img_B[:, :, :h, :w]
+         
         img_input = torch.cat((img_A, img_B), 1)
         return self.model(img_input)
 
