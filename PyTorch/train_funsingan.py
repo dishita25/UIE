@@ -426,7 +426,9 @@ def train_multiple_images(opt):
 
             # Create a unique output directory for this image pair
             image_name_prefix = os.path.splitext(file_name_A)[0]
-            opt.outf = os.path.join(functions.generate_dir2save(opt), image_name_prefix)
+
+            # The corrected line: pass the file_name_A directly to the function
+            opt.outf = os.path.join(functions.generate_dir2save(opt, file_name_A), image_name_prefix)
             os.makedirs(opt.outf, exist_ok=True)
 
             print(f"\nProcessing image pair: {file_name_A}")
@@ -436,9 +438,6 @@ def train_multiple_images(opt):
 
             Gs, Zs, reals, NoiseAmp = train_on_image_pair(opt, blur_image_path, real_image_path)
             generate_samples(opt, Gs, Zs, reals, NoiseAmp, num_samples=5)
-            
-            # The original code saves checkpoints within the loop, which is fine.
-            # You can add a summary for each image pair here if needed.
 
 def train_on_image_pair(opt, blur_image_path, real_image_path):
     """Train FunieGAN on a single image pair using a multi-scale approach"""
