@@ -533,6 +533,8 @@ def post_config(opt):
 
 def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
+    if real_batch.dim() == 3:
+        real_batch = real_batch.unsqueeze(0)
     real_batch = real_batch[:, 0:3, :, :]   # keeps all batch elements
     for h, w in scales:
         # Interpolate the entire batch
