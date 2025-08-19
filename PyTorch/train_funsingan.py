@@ -509,8 +509,12 @@ def train_few_shot_funiegan(opt):
                     prev = m_image(blur_img)
                     noise = prev
                 else:
-                    prev = functions.draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num)
-                    z_prev = functions.draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num)
+                    prev = functions.draw_concat_hardcoded_batch(
+                        Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num
+                    )
+                    z_prev = functions.draw_concat_hardcoded_batch(
+                        Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num
+                    )
                     
                     real_img_aligned, z_prev_aligned = functions.align_tensors(real_img, z_prev)
                     rmse = torch.sqrt(mse(real_img_aligned, z_prev_aligned))
@@ -627,7 +631,11 @@ def generate_samples(opt, Gs, Zs, NoiseAmp, num_samples=5):
     dataset = FewShotDataset(opt)
     sample_blur, sample_real = dataset[0]
     
-    blur_pyramid = functions.creat_pyramid_from_hardcoded_scales_batch(sample_blur.unsqueeze(0), HARDCODED_SCALES)
+    # Ensure the sample blur has a batch dimension for the function call
+    if sample_blur.dim() == 3:
+        sample_blur = sample_blur.unsqueeze(0)
+    
+    blur_pyramid = functions.creat_pyramid_from_hardcoded_scales_batch(sample_blur, HARDCODED_SCALES)
     
     for i in range(num_samples):
         print(f"Generating sample {i+1}/{num_samples}")
