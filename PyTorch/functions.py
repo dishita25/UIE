@@ -845,29 +845,29 @@ def draw_concat_hardcoded(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded
     G_z = in_s
     if len(Gs) > 0:
         for idx, (G, Z_opt, blur_curr, noise_amp) in enumerate(zip(Gs, Zs, blurs, NoiseAmp)):
-            print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}")
+            # print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}")
             
             # Resize G_z to match the current blur_curr shape
             G_z = torch.nn.functional.interpolate(G_z, size=(blur_curr.shape[2], blur_curr.shape[3]), mode='bilinear', align_corners=False)
-            print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
+            # print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
             
             G_z = m_image(G_z)
-            print(f"G_z shape after padding: {G_z.shape}")
+            # print(f"G_z shape after padding: {G_z.shape}")
 
             z = torch.zeros_like(Z_opt, device=opt.device)
             z, G_z = align_tensors(z, G_z)
             z_in = G_z + noise_amp * z
-            print(f"z_in shape: {z_in.shape}")     
+            # print(f"z_in shape: {z_in.shape}")     
 
             G_z = G(z_in.detach())
-            print(f"G_z shape after detach function: {G_z.shape}")
+            # print(f"G_z shape after detach function: {G_z.shape}")
 
             # Upscale for next scale using the hard-coded sizes
             if idx < len(hardcoded_scales) - 1:
                 target_h, target_w = hardcoded_scales[idx + 1]
                 G_z = torch.nn.functional.interpolate(G_z, size=(target_h, target_w), mode='bilinear', align_corners=False)
             
-            print(f"G_z shape after imresize: {G_z.shape}")
+            # print(f"G_z shape after imresize: {G_z.shape}")
 
     return G_z
 
