@@ -533,31 +533,70 @@ def post_config(opt):
 
 def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
-    real_batch = real_batch[:, 0:3, :, :]
+    real_batch = real_batch[:, 0:3, :, :]   # keeps all batch elements
     for h, w in scales:
         # Interpolate the entire batch
-        curr_real = torch.nn.functional.interpolate(real_batch, size=(h, w), mode='bilinear', align_corners=False)
+        curr_real = torch.nn.functional.interpolate(
+            real_batch, size=(h, w), mode='bilinear', align_corners=False
+        )
         reals.append(curr_real)
     return reals
 
-def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded_scales, batch_size):
+def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded_scales, batch_size, last_scale_idx=None):
+    """
+    Few-shot version of draw_concat that supports batches of images.
+    
+    Args:
+        Gs: List of trained generators
+        Zs: List of stored latent tensors
+        blurs: List of blur images
+        NoiseAmp: List of noise amplification factors
+        in_s: Input tensor (batch)
+        m_image: Padding / masking function
+        opt: Options containing device
+        hardcoded_scales: List of (H, W) scales
+        batch_size: Number of images in the batch
+        last_scale_idx: Last index of scales to use (defaults to all)
+    """
+
     G_z = in_s
 
+    if last_scale_idx is None:
+        last_scale_idx = len(Gs) - 1
+
     if len(Gs) > 0:
-        for idx, (G, Z_opt, blur_curr, noise_amp) in enumerate(zip(Gs[:last_scale_idx + 1], Zs[:last_scale_idx + 1], blurs[:last_scale_idx + 1], NoiseAmp[:last_scale_idx + 1])):
-            
-            G_z = torch.nn.functional.interpolate(G_z, size=(blur_curr.shape[2], blur_curr.shape[3]), mode='bilinear', align_corners=False)
+        for idx, (G, Z_opt, blur_curr, noise_amp) in enumerate(
+            zip(Gs[:last_scale_idx + 1], Zs[:last_scale_idx + 1], blurs[:last_scale_idx + 1], NoiseAmp[:last_scale_idx + 1])
+        ):
+            # Resize to current blur scale (keep batch dim)
+            G_z = torch.nn.functional.interpolate(
+                G_z, size=(blur_curr.shape[2], blur_curr.shape[3]),
+                mode='bilinear', align_corners=False
+            )
+
+            # Apply mask/padding to each image in batch
             G_z = m_image(G_z)
-            
+
+            # Prepare latent noise for batch
             z = torch.zeros_like(Z_opt, device=opt.device)
+            
+            # Align shapes across batch
             z, G_z = align_tensors(z, G_z)
+
+            # Inject noise
             z_in = G_z + noise_amp * z
-            
+
+            # Generate output for batch
             G_z = G(z_in.detach())
-            
+
+            # Upscale to next hardcoded scale if not at last
             if idx < len(hardcoded_scales) - 1:
                 target_h, target_w = hardcoded_scales[idx + 1]
-                G_z = torch.nn.functional.interpolate(G_z, size=(target_h, target_w), mode='bilinear', align_corners=False)
+                G_z = torch.nn.functional.interpolate(
+                    G_z, size=(target_h, target_w),
+                    mode='bilinear', align_corners=False
+                )
+
     return G_z
 
 

@@ -498,8 +498,16 @@ def train_few_shot_funiegan(opt):
                 m_noise = nn.ZeroPad2d(pad_noise)
                 m_image = nn.ZeroPad2d(pad_noise)
 
-                if epoch == 0 and i == 0: # Initialize z_opt and noise_amp at the first iteration of the first epoch
-                    z_opt = torch.full_like(blur_img, 0).to(opt.device)
+                # Fix: Define the input to the current scale
+                if scale_num == 0:
+                    in_s = blur_img
+                else:
+                    in_s = functions.draw_concat_hardcoded_batch(
+                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num - 1
+                    )
+
+                if epoch == 0 and i == 0:
+                    z_opt = torch.full_like(in_s, 0).to(opt.device)
                     opt.noise_amp = opt.noise_amp_init
                     NoiseAmp.append(opt.noise_amp)
                     Zs.append(z_opt)
@@ -511,11 +519,13 @@ def train_few_shot_funiegan(opt):
                     prev = m_image(blur_img)
                     noise = prev
                 else:
+                    # Fix: Pass the in_s parameter
                     prev = functions.draw_concat_hardcoded_batch(
-                        Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num
+                        Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
                     )
+                    # Fix: Pass the in_s parameter
                     z_prev = functions.draw_concat_hardcoded_batch(
-                        Gs, Zs, blurs, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], scale_idx=scale_num
+                        Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
                     )
                     
                     real_img_aligned, z_prev_aligned = functions.align_tensors(real_img, z_prev)
