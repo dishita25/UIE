@@ -478,6 +478,11 @@ def train_few_shot_funiegan(opt):
                 blur_batch = blur_batch.to(opt.device)
                 real_batch = real_batch.to(opt.device)
 
+                if blur_batch.dim() == 3:
+                    blur_batch = blur_batch.unsqueeze(0)
+                if real_batch.dim() == 3:
+                    real_batch = real_batch.unsqueeze(0)
+
                 # Create pyramid from the current batch
                 blurs = functions.creat_pyramid_from_hardcoded_scales_batch(blur_batch, HARDCODED_SCALES)
                 reals = functions.creat_pyramid_from_hardcoded_scales_batch(real_batch, HARDCODED_SCALES)
