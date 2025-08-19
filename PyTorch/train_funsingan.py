@@ -441,7 +441,7 @@ def train_few_shot_funiegan(opt):
     
     # Setup data loader
     dataset = FewShotDataset(opt)
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
     
     # Set stop_scale based on the number of hard-coded scales
     opt.stop_scale = len(HARDCODED_SCALES) - 1
