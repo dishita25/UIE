@@ -41,7 +41,7 @@ class SpatioChannelAttention(nn.Module):
         avg_out = torch.mean(x_conv, dim=1, keepdim=True)                                # b x 1 x H x W
         max_out, _ = torch.max(x_conv, dim=1, keepdim=True)                              # b x 1 x H x W
         spatial_descriptor = torch.cat([avg_out, max_out], dim=1)                   # b x 2 x H x W
-        spatial_att = self.spatial_sigmoid(self.spatial_conv(spatial_descriptor))   # b x c x H x W
+        spatial_att = self.spatial_sigmoid(self.spatial_conv(spatial_descriptor))   # b x 1 x H x W
         spatial_feature = x_conv * spatial_att                                           # Spatial scaled feature map
 
         # Concatenate spatial and channel attention refined features

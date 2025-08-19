@@ -111,8 +111,8 @@ def train_single_image_with_funiegan(opt):
         blur_img = blurs[scale_num]
         real_img = reals[scale_num]
         opt.nzx, opt.nzy = blur_img.shape[2], blur_img.shape[3]
-        print(f"Blur image shape: {blur_img.shape}")
-        print(f"Real image shape: {real_img.shape}")
+        # print(f"Blur image shape: {blur_img.shape}")
+        # print(f"Real image shape: {real_img.shape}")
 
         generator = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
         discriminator = DiscriminatorFunieGAN(opt.nc_im).to(opt.device)
@@ -143,30 +143,30 @@ def train_single_image_with_funiegan(opt):
                 prev = m_image(blur_img)
                 opt.noise_amp = opt.noise_amp_init
                 noise = prev
-                print(f"Initial blur image shape: {blur_img.shape}, Blur image shape after padding: {noise.shape}")
+                # print(f"Initial blur image shape: {blur_img.shape}, Blur image shape after padding: {noise.shape}")
             else:
                 # Use the hard-coded sizes for drawing the next input
                 prev = functions.draw_concat_hardcoded(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES)
-                print(f"prev shape after draw_concat: {prev.shape}")
+                # print(f"prev shape after draw_concat: {prev.shape}")
                 prev = m_image(prev)
-                print(f"prev shape after padding: {prev.shape}")
+                # print(f"prev shape after padding: {prev.shape}")
                 
                 z_prev = functions.draw_concat_hardcoded(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES)
-                print(f"z_prev shape after draw_concat: {z_prev.shape}")
+                # print(f"z_prev shape after draw_concat: {z_prev.shape}")
                 real_img, z_prev = functions.align_tensors(real_img, z_prev)
-                print(f"real_img shape after alignment: {real_img.shape}, z_prev shape after alignment: {z_prev.shape}")
+                # print(f"real_img shape after alignment: {real_img.shape}, z_prev shape after alignment: {z_prev.shape}")
                 rmse = torch.sqrt(mse(real_img, z_prev))
                 opt.noise_amp = opt.noise_amp_init * rmse
                 z_prev = m_image(z_prev)
-                print(f"z_prev shape after padding: {z_prev.shape}")
+                # print(f"z_prev shape after padding: {z_prev.shape}")
                 noise = prev
 
             if prev.shape != noise_.shape:
                 prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
-                print(f"prev shape after interpolation if(noise shape is not equal prev shape): {prev.shape}")
+                # print(f"prev shape after interpolation if(noise shape is not equal prev shape): {prev.shape}")
 
             noise = prev
-            print(f"Noise shape: {noise.shape}")
+            # print(f"Noise shape: {noise.shape}")
 
             # Train Discriminator
             discriminator.zero_grad()
@@ -175,7 +175,7 @@ def train_single_image_with_funiegan(opt):
             real_loss = mse(real_pred, torch.ones_like(real_pred))
             
             fake = generator(noise.detach())
-            print(f"Fake pred shape: {fake.shape}, Real pred shape: {real_pred.shape}")
+            # print(f"Fake pred shape: {fake.shape}, Real pred shape: {real_pred.shape}")
             fake_pred = discriminator(fake.detach(), blur_img)
             fake_loss = mse(fake_pred, torch.zeros_like(fake_pred))
             
