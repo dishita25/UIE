@@ -533,7 +533,6 @@ def post_config(opt):
 
 def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
-    # Ensure real_batch has 3 channels for consistent processing
     real_batch = real_batch[:, 0:3, :, :]
     for h, w in scales:
         # Interpolate the entire batch
@@ -541,13 +540,7 @@ def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
         reals.append(curr_real)
     return reals
 
-def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, m_image, opt, hardcoded_scales, batch_size, scale_idx=None):
-    if scale_idx is not None:
-        last_scale_idx = scale_idx - 1
-    else:
-        last_scale_idx = len(Gs) - 1
-    
-    in_s = torch.full((batch_size, opt.nc_im, hardcoded_scales[0][0], hardcoded_scales[0][1]), 0, device=opt.device)
+def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded_scales, batch_size):
     G_z = in_s
 
     if len(Gs) > 0:
@@ -556,7 +549,7 @@ def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, m_image, opt, hardcoded
             G_z = torch.nn.functional.interpolate(G_z, size=(blur_curr.shape[2], blur_curr.shape[3]), mode='bilinear', align_corners=False)
             G_z = m_image(G_z)
             
-            z = torch.randn_like(Z_opt, device=opt.device)
+            z = torch.zeros_like(Z_opt, device=opt.device)
             z, G_z = align_tensors(z, G_z)
             z_in = G_z + noise_amp * z
             
@@ -566,6 +559,47 @@ def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, m_image, opt, hardcoded
                 target_h, target_w = hardcoded_scales[idx + 1]
                 G_z = torch.nn.functional.interpolate(G_z, size=(target_h, target_w), mode='bilinear', align_corners=False)
     return G_z
+
+
+# def creat_pyramid_from_hardcoded_scales(real, scales):
+#     reals = []
+#     real = real[:, 0:3, :, :]
+#     for h, w in scales:
+#         curr_real = torch.nn.functional.interpolate(real, size=(h, w), mode='bilinear', align_corners=False)
+#         reals.append(curr_real)
+#     return reals
+
+# # MODIFIED draw_concat to use hard-coded scales
+# def draw_concat_hardcoded(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded_scales):
+#     G_z = in_s
+#     if len(Gs) > 0:
+#         for idx, (G, Z_opt, blur_curr, noise_amp) in enumerate(zip(Gs, Zs, blurs, NoiseAmp)):
+#             print(f"Z_opt shape: {Z_opt.shape}, G_z shape before upscaling: {G_z.shape}, blur_curr shape: {blur_curr.shape}")
+            
+#             # Resize G_z to match the current blur_curr shape
+#             G_z = torch.nn.functional.interpolate(G_z, size=(blur_curr.shape[2], blur_curr.shape[3]), mode='bilinear', align_corners=False)
+#             print(f"G_z shape after resizing to match the current scale: {G_z.shape}")
+            
+#             G_z = m_image(G_z)
+#             print(f"G_z shape after padding: {G_z.shape}")
+
+#             z = torch.zeros_like(Z_opt, device=opt.device)
+#             z, G_z = align_tensors(z, G_z)
+#             z_in = G_z + noise_amp * z
+#             print(f"z_in shape: {z_in.shape}")     
+
+#             G_z = G(z_in.detach())
+#             print(f"G_z shape after detach function: {G_z.shape}")
+
+#             # Upscale for next scale using the hard-coded sizes
+#             if idx < len(hardcoded_scales) - 1:
+#                 target_h, target_w = hardcoded_scales[idx + 1]
+#                 G_z = torch.nn.functional.interpolate(G_z, size=(target_h, target_w), mode='bilinear', align_corners=False)
+            
+#             print(f"G_z shape after imresize: {G_z.shape}")
+
+#     return G_z
+
 
 def align_tensors(a, b):
     h = min(a.shape[2], b.shape[2])

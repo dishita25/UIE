@@ -351,6 +351,7 @@ from nets.commons import VGG19_PercepLoss, Weights_Normal
 from torchvision.utils import save_image
 from torch.utils.data import Dataset, DataLoader
 import glob
+import random 
 
 # Hard-coded scales
 HARDCODED_SCALES = [
@@ -413,15 +414,21 @@ def get_config():
     return args
 
 class FewShotDataset(Dataset):
-    def __init__(self, opt):
+    def __init__(self, opt, max_images=100):
         self.opt = opt
         self.blur_paths = sorted(glob.glob(os.path.join(opt.blur_dir, "*.jpg")))
         self.real_paths = sorted(glob.glob(os.path.join(opt.real_dir, "*.jpg")))
         
-        # Ensure the number of image pairs is consistent
+        # Ensure consistent pairs
         num_images = min(len(self.blur_paths), len(self.real_paths))
         self.blur_paths = self.blur_paths[:num_images]
         self.real_paths = self.real_paths[:num_images]
+
+        # If you only want a random subset (say 100)
+        if max_images is not None and num_images > max_images:
+            indices = random.sample(range(num_images), max_images)  # pick 100 random indices
+            self.blur_paths = [self.blur_paths[i] for i in indices]
+            self.real_paths = [self.real_paths[i] for i in indices]
 
     def __len__(self):
         return len(self.blur_paths)
@@ -477,11 +484,6 @@ def train_few_shot_funiegan(opt):
             for i, (blur_batch, real_batch) in enumerate(dataloader):
                 blur_batch = blur_batch.to(opt.device)
                 real_batch = real_batch.to(opt.device)
-
-                if blur_batch.dim() == 3:
-                    blur_batch = blur_batch.unsqueeze(0)
-                if real_batch.dim() == 3:
-                    real_batch = real_batch.unsqueeze(0)
 
                 # Create pyramid from the current batch
                 blurs = functions.creat_pyramid_from_hardcoded_scales_batch(blur_batch, HARDCODED_SCALES)
