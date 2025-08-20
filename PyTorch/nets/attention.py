@@ -20,7 +20,7 @@ class SpatioChannelAttention(nn.Module):
         )
 
         # Spatial Attention branch
-        self.spatial_conv = nn.Conv2d(2, 1, kernel_size=7, padding=3, bias=True) 
+        self.spatial_conv = nn.Conv2d(2, 1, kernel_size=3, padding=1, bias=True) 
         self.spatial_sigmoid = nn.Sigmoid()
 
         # Convolution after concatenation of channel and spatial outputs
