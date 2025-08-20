@@ -467,22 +467,26 @@ def read_image_dir(dir,opt):
     x = x[:,0:3,:,:]
     return x
 
-def read_blur_image(opt):
-    x  = img.imread('%s' % (opt.blur_image_path))
-    x = np2torch(x,opt)
-    x = x[0:,0:3,:,:]
+def read_image_dir(dir, opt):
+    x = img.imread('%s' % (dir))
+    # `np2torch` now returns a 3D tensor (C, H, W)
+    x = np2torch(x, opt)
+    # This slicing is no longer necessary and should be removed.
+    # The image is already in the correct format.
+    # The line "x = x[:,0:3,:,:]" should be removed or commented out.
     return x
 
 def np2torch(x, opt):
     if opt.nc_im == 3:
         if x.ndim == 2:
+            # Convert grayscale to color if needed
             x = np.stack([x] * 3, axis=-1)
-        # Remove the line below to fix the bug
-        # x = x[:,:,:,None] 
-        # The new transpose now works on (H, W, C) -> (C, H, W)
+        # Transpose from (H, W, C) to (C, H, W)
         x = x.transpose((2, 0, 1)) / 255.0
     else:
+        # For grayscale images
         x = color.rgb2gray(x)
+        # Add a channel dimension for grayscale
         x = x[None, :, :]
     
     x = torch.from_numpy(x)
