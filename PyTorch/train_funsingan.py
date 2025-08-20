@@ -485,6 +485,8 @@ def train_few_shot_funiegan(opt):
                 blur_batch = blur_batch.to(opt.device)
                 real_batch = real_batch.to(opt.device)
 
+                print(f"Batch {i+1}/{len(dataloader)}: Blur batch shape: {blur_batch.shape}, Real batch shape: {real_batch.shape}")
+
                 blurs = functions.creat_pyramid_from_hardcoded_scales_batch(blur_batch, HARDCODED_SCALES)
                 reals = functions.creat_pyramid_from_hardcoded_scales_batch(real_batch, HARDCODED_SCALES)
                 
