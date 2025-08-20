@@ -535,6 +535,7 @@ def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
     if real_batch.dim() == 3:
         real_batch = real_batch.unsqueeze(0)
+
     real_batch = real_batch[:, 0:3, :, :]   # keeps all batch elements
     for h, w in scales:
         # Interpolate the entire batch
@@ -545,24 +546,7 @@ def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     return reals
 
 def draw_concat_hardcoded_batch(Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, hardcoded_scales, batch_size, last_scale_idx=None):
-    """
-    Few-shot version of draw_concat that supports batches of images.
-    
-    Args:
-        Gs: List of trained generators
-        Zs: List of stored latent tensors
-        blurs: List of blur images
-        NoiseAmp: List of noise amplification factors
-        in_s: Input tensor (batch)
-        m_image: Padding / masking function
-        opt: Options containing device
-        hardcoded_scales: List of (H, W) scales
-        batch_size: Number of images in the batch
-        last_scale_idx: Last index of scales to use (defaults to all)
-    """
-
     G_z = in_s
-
     if last_scale_idx is None:
         last_scale_idx = len(Gs) - 1
 
