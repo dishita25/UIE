@@ -485,7 +485,6 @@ def train_few_shot_funiegan(opt):
                 blur_batch = blur_batch.to(opt.device)
                 real_batch = real_batch.to(opt.device)
 
-                # Create pyramid from the current batch
                 blurs = functions.creat_pyramid_from_hardcoded_scales_batch(blur_batch, HARDCODED_SCALES)
                 reals = functions.creat_pyramid_from_hardcoded_scales_batch(real_batch, HARDCODED_SCALES)
                 
@@ -498,34 +497,31 @@ def train_few_shot_funiegan(opt):
                 m_noise = nn.ZeroPad2d(pad_noise)
                 m_image = nn.ZeroPad2d(pad_noise)
 
-                # Fix: Define the input to the current scale
-                if scale_num == 0:
-                    in_s = blur_img
-                else:
-                    in_s = functions.draw_concat_hardcoded_batch(
-                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num - 1
-                    )
-
-                if epoch == 0 and i == 0:
-                    z_opt = torch.full_like(in_s, 0).to(opt.device)
+                # Initialize z_opt and noise_amp for this scale if this is the first batch
+                if i == 0 and epoch == 0:
+                    z_opt = torch.full_like(blurs[0], 0).to(opt.device)
                     opt.noise_amp = opt.noise_amp_init
-                    NoiseAmp.append(opt.noise_amp)
                     Zs.append(z_opt)
-                    
+                    NoiseAmp.append(opt.noise_amp)
+
                 noise_ = functions.generate_noise_batch([opt.nc_z, opt.nzx, opt.nzy], num_samp=blur_batch.shape[0], device=opt.device)
                 noise_ = m_noise(noise_)
 
                 if scale_num == 0:
-                    prev = m_image(blur_img)
+                    # The first scale takes the lowest resolution blurred image as input
+                    prev = m_image(blurs[0])
+                    # And the 'noise' for the first scale is the padded blurred image
                     noise = prev
                 else:
-                    # Fix: Pass the in_s parameter
+                    # For subsequent scales, use the output of the previous scale's generator as input.
+                    # The draw_concat_hardcoded_batch function handles this recursively.
+                    # The 'in_s' parameter in this function is the lowest resolution input image (blurs[0]).
                     prev = functions.draw_concat_hardcoded_batch(
-                        Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
+                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num - 1
                     )
-                    # Fix: Pass the in_s parameter
+                    
                     z_prev = functions.draw_concat_hardcoded_batch(
-                        Gs, Zs, blurs, NoiseAmp, in_s, m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
+                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
                     )
                     
                     real_img_aligned, z_prev_aligned = functions.align_tensors(real_img, z_prev)
@@ -536,6 +532,7 @@ def train_few_shot_funiegan(opt):
                     prev = m_image(prev)
                     noise = prev
 
+                # This part is a bit redundant but left as is to match the user's code structure
                 if prev.shape != noise_.shape:
                     prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
                 
