@@ -535,13 +535,14 @@ def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
     if real_batch.dim() == 3:
         real_batch = real_batch.unsqueeze(0)
-
-    real_batch = real_batch[:, 0:3, :, :]   # keeps all batch elements
+    print(f"Input batch shape: {real_batch.shape}")
+    real_batch = real_batch[:, 0:3, :, :] # keeps all batch elements
     for h, w in scales:
         # Interpolate the entire batch
         curr_real = torch.nn.functional.interpolate(
             real_batch, size=(h, w), mode='bilinear', align_corners=False
         )
+        print(f"Interpolated shape for scale ({h}, {w}): {curr_real.shape}")
         reals.append(curr_real)
     return reals
 
