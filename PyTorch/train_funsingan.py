@@ -651,7 +651,7 @@ def generate_samples(opt, Gs, Zs, NoiseAmp, num_samples=5):
     for i in range(num_samples):
         print(f"Generating sample {i+1}/{num_samples}")
         
-        sample = functions.draw_concat_hardcoded_batch(Gs, Zs, blur_pyramid, NoiseAmp, m_image, opt, HARDCODED_SCALES, batch_size=1)
+        sample = functions.draw_concat_hardcoded_batch(Gs, Zs, blur_pyramid, NoiseAmp, blur_pyramid[0], m_image, opt, HARDCODED_SCALES, batch_size=1)
         
         save_image(sample.squeeze(0), f"{samples_dir}/random_sample_{i+1}.png")
     
