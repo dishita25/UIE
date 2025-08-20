@@ -534,7 +534,8 @@ def post_config(opt):
 def creat_pyramid_from_hardcoded_scales_batch(real_batch, scales):
     reals = []
     print(f"Input batch shape: {real_batch.shape}")
-    real_batch = real_batch[:, 0:3, :, :] # keeps all batch elements
+    real_batch = real_batch[:, 0:3, :, :]
+    print(f"Before interpolation: {real_batch.shape}") # keeps all batch elements
     for h, w in scales:
         # Interpolate the entire batch
         curr_real = torch.nn.functional.interpolate(
