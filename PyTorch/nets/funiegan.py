@@ -90,7 +90,7 @@ class GeneratorFunieGAN(nn.Module):
         print(f"d4_attention shape: {d4_attention.shape}")
         
         d5 = self.down5(d4_attention)
-        print(f"d5 shape: {d4.shape}")
+        print(f"d5 shape: {d5.shape}")
         d5_attention = self.sca_256_3(d5)
         print(f"d5_attention shape: {d5_attention.shape}")
         
