@@ -473,16 +473,18 @@ def read_blur_image(opt):
     x = x[0:,0:3,:,:]
     return x
 
-def np2torch(x,opt):
+def np2torch(x, opt):
     if opt.nc_im == 3:
         if x.ndim == 2:
             x = np.stack([x] * 3, axis=-1)
-        x = x[:,:,:,None]
-        x = x.transpose((3, 2, 0, 1))/255
+        # Remove the line below to fix the bug
+        # x = x[:,:,:,None] 
+        # The new transpose now works on (H, W, C) -> (C, H, W)
+        x = x.transpose((2, 0, 1)) / 255.0
     else:
         x = color.rgb2gray(x)
-        x = x[:,:,None,None]
-        x = x.transpose(3, 2, 0, 1)
+        x = x[None, :, :]
+    
     x = torch.from_numpy(x)
     if not(opt.not_cuda):
         x = move_to_gpu(x)
