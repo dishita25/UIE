@@ -20,6 +20,7 @@ from nets import funiegan
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
 parser.add_argument("--sample_dir", type=str, default="data/output/")
+parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
 parser.add_argument("--model_path", type=str, default="/kaggle/output/UIE/TrainedModels/264286_00007889/scale_factor=0.750000,alpha=10/final_model.pth")
 opt = parser.parse_args()
@@ -27,6 +28,7 @@ opt = parser.parse_args()
 ## checks
 assert exists(opt.model_path), "model not found"
 os.makedirs(opt.sample_dir, exist_ok=True)
+os.makedirs(opt.enhanced_dir, exist_ok=True)
 is_cuda = torch.cuda.is_available()
 Tensor = torch.cuda.FloatTensor if is_cuda else torch.FloatTensor 
 
@@ -76,6 +78,7 @@ for path in test_files:
     
     # save output
     img_sample = torch.cat((inp_img.data, gen_img.data), -1)
+    save_image(gen_img, join(opt.enhanced_dir, basename(path)), normalize=True)
     save_image(img_sample, join(opt.sample_dir, basename(path)), normalize=True)
     print ("Tested: %s" % path)
 
