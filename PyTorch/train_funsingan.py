@@ -174,8 +174,11 @@ def train_single_image_with_funiegan(opt):
             real_pred = discriminator(real_img, blur_img)
             real_loss = mse(real_pred, torch.ones_like(real_pred))
             
+            print("======================Train discriminator======================")
+            print(f"noise shape: {noise.shape}")
             fake = generator(noise.detach())
-            # print(f"Fake pred shape: {fake.shape}, Real pred shape: {real_pred.shape}")
+            print(f"fake shape (noise shape after gen): {fake.shape}")
+
             fake_pred = discriminator(fake.detach(), blur_img)
             fake_loss = mse(fake_pred, torch.zeros_like(fake_pred))
             
@@ -197,10 +200,16 @@ def train_single_image_with_funiegan(opt):
             
             if pad_h > 0 or pad_w > 0:
                 noise_padded = torch.nn.functional.pad(noise, (0, pad_w, 0, pad_h), mode='reflect')
+                print("========================Train generator=====================")
+                print(f"Before gen => Noise shape: {noise_padded.shape}")
                 fake = generator(noise_padded)
+                print(f"After gen => fake shape: {fake.shape}")
                 fake = fake[:, :, :h, :w]
             else:
+                print("========================Train generator=====================")
+                print(f"Before gen => Noise shape: {noise.shape}")
                 fake = generator(noise)
+                print(f"After gen => fake shape: {fake.shape}")
                 
             fake_pred = discriminator(fake, blur_img)
 
@@ -233,7 +242,10 @@ def train_single_image_with_funiegan(opt):
 
             if epoch % 500 == 0 or epoch == opt.niter - 1:
                 with torch.no_grad():
+                    print(f"==============Saving Image at {epoch} epoch==============")
+                    print(f"Noise shape before gen: {noise.shape}")
                     fake_sample = generator(noise)
+                    print(f"fake_sample shape (noise shape after gen): {fake_sample.shape}")
                     save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
                     
                     if epoch == 0:

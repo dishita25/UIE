@@ -73,57 +73,25 @@ class GeneratorFunieGAN(nn.Module):
 
     def forward(self, x):
         d1 = self.down1(x)
-        print(f"d1 shape: {d1.shape}")
         d2 = self.down2(d1)
-        print(f"d2 shape: {d2.shape}")
         d2_attention = self.sca_128(d2)
-        print(f"d2_attention shape: {d2_attention.shape}")
         
         d3 = self.down3(d2_attention)
-        print(f"d3 shape: {d3.shape}")
         d3_attention = self.sca_256_1(d3)
-        print(f"d3_attention shape: {d3_attention.shape}")
         
         d4 = self.down4(d3_attention)
-        print(f"d4 shape: {d4.shape}")
         d4_attention = self.sca_256_2(d4)
-        print(f"d4_attention shape: {d4_attention.shape}")
         
         d5 = self.down5(d4_attention)
-        print(f"d5 shape: {d5.shape}")
         d5_attention = self.sca_256_3(d5)
-        print(f"d5_attention shape: {d5_attention.shape}")
         
         u1 = self.up1(d5_attention, d4_attention)
-        print(f"u1 shape: {u1.shape}")
         u2 = self.up2(u1, d3_attention)
-        print(f"u2 shape: {u2.shape}")
         u3 = self.up3(u2, d2_attention)
-        print(f"u3 shape: {u3.shape}")
         u45 = self.up4(u3, d1)
-        print(f"u45 shape: {u45.shape}")
         return self.final(u45)
         
-        # d1 = self.down1(x)
-        # d2 = self.down2(d1)
-        # d2_attention = self.sca_128(d2)
-        
-        # d3 = self.down3(d2)
-        # d3_attention = self.sca_256_1(d3)
-        
-        # d4 = self.down4(d3)
-        # d4_attention = self.sca_256_2(d4)
-        
-        # d5 = self.down5(d4)
-        # d5_attention = self.sca_256_3(d5)
-        
-        # u1 = self.up1(d5_attention, d4_attention)
-        # u2 = self.up2(u1, d3_attention)
-        # u3 = self.up3(u2, d2_attention)
-        # u45 = self.up4(u3, d1)
-        # return self.final(u45)
-
-
+       
 class DiscriminatorFunieGAN(nn.Module):
     """ A 4-layer Markovian discriminator as described in the paper
     """
