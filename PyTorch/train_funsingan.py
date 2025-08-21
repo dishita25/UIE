@@ -495,7 +495,12 @@ def train_few_shot_funiegan(opt):
                 # The code here is a direct copy of the original training logic,
                 # but it now operates on the fixed `blur_img` and `real_img`
                 # for the duration of this scale's training.
-
+                
+                # --- The following block was missing ---
+                pad_noise = int(((opt.ker_size - 1) * opt.num_layer) / 2)
+                m_noise = nn.ZeroPad2d(pad_noise)
+                m_image = nn.ZeroPad2d(pad_noise)
+                
                 # Initialize z_opt and noise_amp for this scale if this is the first epoch
                 if epoch == 0:
                     z_opt = torch.full_like(blurs[0], 0).to(opt.device)
@@ -503,9 +508,79 @@ def train_few_shot_funiegan(opt):
                     Zs.append(z_opt)
                     NoiseAmp.append(opt.noise_amp)
 
-                # All other training steps (D and G updates) go here,
-                # using `blur_img` and `real_img`
-                # ... (rest of the original training logic) ...
+                noise_ = functions.generate_noise_batch([opt.nc_z, opt.nzx, opt.nzy], num_samp=blur_batch.shape[0], device=opt.device)
+                noise_ = m_noise(noise_)
+
+                if scale_num == 0:
+                    prev = m_image(blurs[0])
+                    noise = prev
+                else:
+                    prev = functions.draw_concat_hardcoded_batch(
+                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num - 1
+                    )
+                    
+                    z_prev = functions.draw_concat_hardcoded_batch(
+                        Gs, Zs, blurs, NoiseAmp, blurs[0], m_image, opt, HARDCODED_SCALES, batch_size=blur_batch.shape[0], last_scale_idx=scale_num
+                    )
+                    
+                    real_img_aligned, z_prev_aligned = functions.align_tensors(real_img, z_prev)
+                    rmse = torch.sqrt(mse(real_img_aligned, z_prev_aligned))
+                    opt.noise_amp = opt.noise_amp_init * rmse
+                    NoiseAmp[-1] = opt.noise_amp
+                    
+                    prev = m_image(prev)
+                    noise = prev
+                
+                if prev.shape != noise_.shape:
+                    prev = torch.nn.functional.interpolate(prev, size=(noise_.shape[2], noise_.shape[3]), mode='bilinear', align_corners=False)
+                
+                noise = prev
+
+                # Train Discriminator
+                discriminator.zero_grad()
+                real_pred = discriminator(real_img, blur_img)
+                real_loss = mse(real_pred, torch.ones_like(real_pred))
+                
+                fake = generator(noise.detach())
+                fake_pred = discriminator(fake.detach(), blur_img)
+                fake_loss = mse(fake_pred, torch.zeros_like(fake_pred))
+                
+                loss_D = 0.5 * (real_loss + fake_loss)
+                
+                if hasattr(opt, 'lambda_grad') and opt.lambda_grad > 0:
+                    gradient_penalty = functions.calc_gradient_penalty(discriminator, real_img, fake, opt.lambda_grad, opt.device)
+                    loss_D += opt.lambda_grad * gradient_penalty
+                
+                loss_D.backward()
+                optimizer_D.step()
+
+                # Train Generator
+                generator.zero_grad()
+                
+                h, w = noise.shape[2], noise.shape[3]
+                pad_h = (16 - h % 16) % 16
+                pad_w = (16 - w % 16) % 16
+                
+                if pad_h > 0 or pad_w > 0:
+                    noise_padded = torch.nn.functional.pad(noise, (0, pad_w, 0, pad_h), mode='reflect')
+                    fake = generator(noise_padded)
+                    fake = fake[:, :, :h, :w]
+                else:
+                    fake = generator(noise)
+                    
+                fake_pred = discriminator(fake, blur_img)
+
+                real_img_resized, fake_resized = functions.align_tensors(real_img, fake)
+                
+                loss_adv = mse(fake_pred, torch.ones_like(fake_pred))
+                loss_l1 = l1(fake_resized, real_img_resized)
+                loss_vgg = perceptual(fake_resized, real_img_resized)
+                
+                loss_G = loss_adv + 10 * loss_l1 + 3 * loss_vgg
+                
+                loss_G.backward()
+                optimizer_G.step()
+                # --- End of missing block ---
             
                 # Print and save inside the epoch loop as before
                 if epoch % 100 == 0:
