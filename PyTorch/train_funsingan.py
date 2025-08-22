@@ -586,7 +586,7 @@ def train_few_shot_funiegan(opt):
                 if epoch % 10 == 0:
                     print(f"    > Epoch {epoch}/{opt.niter}: G_loss: {loss_G.item():.4f}, D_loss: {loss_D.item():.4f}")
                 
-                if epoch % 500 == 0 or epoch == opt.niter - 1:
+                if epoch % 10 == 0 or epoch == opt.niter - 1:
                     with torch.no_grad():
                         fake_sample = generator(noise)[0]
                         save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
