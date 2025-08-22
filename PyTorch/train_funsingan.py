@@ -382,7 +382,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0005, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0005, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=100, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=200, help="Number of iterations")
     parser.add_argument("--nc_z", type=int, default=3, help="Number of channels in noise")
     parser.add_argument("--nc_im", type=int, default=3, help="Number of channels in image")
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
@@ -414,7 +414,7 @@ def get_config():
     return args
 
 class FewShotDataset(Dataset):
-    def __init__(self, opt, max_images=50):
+    def __init__(self, opt, max_images=20):
         self.opt = opt
         self.blur_paths = sorted(glob.glob(os.path.join(opt.blur_dir, "*.jpg")))
         self.real_paths = sorted(glob.glob(os.path.join(opt.real_dir, "*.jpg")))
@@ -583,10 +583,10 @@ def train_few_shot_funiegan(opt):
                 # --- End of missing block ---
             
                 # Print and save inside the epoch loop as before
-                if epoch % 10 == 0:
+                if epoch % 20 == 0:
                     print(f"    > Epoch {epoch}/{opt.niter}: G_loss: {loss_G.item():.4f}, D_loss: {loss_D.item():.4f}")
                 
-                if epoch % 10 == 0 or epoch == opt.niter - 1:
+                if epoch % 50 == 0 or epoch == opt.niter - 1:
                     with torch.no_grad():
                         fake_sample = generator(noise)[0]
                         save_image(fake_sample, f"{opt.outf}/fake_epoch_{epoch}.png")
@@ -634,28 +634,11 @@ def main():
     print("=" * 50)
     
     if opt.mode == 'train':
-        Gs, Zs, NoiseAmp = train_few_shot_funiegan(opt)
-        generate_samples(opt, Gs, Zs, NoiseAmp, num_samples=5)
+        train_few_shot_funiegan(opt)
         
     elif opt.mode == 'random_samples':
-        final_model_path = os.path.join(functions.generate_dir2save(opt), "final_model.pth")
-        if os.path.exists(final_model_path):
-            checkpoint = torch.load(final_model_path, map_location=opt.device)
-            
-            Gs = []
-            for i, state_dict in enumerate(checkpoint['Gs']):
-                G = GeneratorFunieGAN(opt.nc_im, opt.nc_im).to(opt.device)
-                G.load_state_dict(state_dict)
-                G.eval()
-                Gs.append(G)
-            
-            Zs = checkpoint['Zs']
-            NoiseAmp = checkpoint['NoiseAmp']
-            
-            generate_samples(opt, Gs, Zs, NoiseAmp, num_samples=10)
-        else:
-            print(f"No trained model found at {final_model_path}")
-            print("Please train the model first with --mode train")
+        print("The 'random_samples' mode has been disabled as per your request.")
+        print("No samples will be generated. The model trained on a single image will not be used for random generation.")
     
     else:
         print(f"Unknown mode: {opt.mode}")
@@ -663,3 +646,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
