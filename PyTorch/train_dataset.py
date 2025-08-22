@@ -34,8 +34,8 @@ def get_config():
     parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/GTr")
     
     # Training parameters
-    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for training")
-    parser.add_argument("--val_batch_size", type=int, default=2, help="Batch size for validation")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size for training")
+    parser.add_argument("--val_batch_size", type=int, default=4, help="Batch size for validation")
     parser.add_argument("--num_workers", type=int, default=2, help="Number of workers for data loading")
     parser.add_argument("--max_image_size", type=int, default=256, help="Maximum size for input images")
     
