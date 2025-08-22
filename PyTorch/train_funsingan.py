@@ -414,7 +414,7 @@ def get_config():
     return args
 
 class FewShotDataset(Dataset):
-    def __init__(self, opt, max_images=100):
+    def __init__(self, opt, max_images=50):
         self.opt = opt
         self.blur_paths = sorted(glob.glob(os.path.join(opt.blur_dir, "*.jpg")))
         self.real_paths = sorted(glob.glob(os.path.join(opt.real_dir, "*.jpg")))
