@@ -583,7 +583,7 @@ def train_few_shot_funiegan(opt):
                 # --- End of missing block ---
             
                 # Print and save inside the epoch loop as before
-                if epoch % 100 == 0:
+                if epoch % 10 == 0:
                     print(f"    > Epoch {epoch}/{opt.niter}: G_loss: {loss_G.item():.4f}, D_loss: {loss_D.item():.4f}")
                 
                 if epoch % 500 == 0 or epoch == opt.niter - 1:
