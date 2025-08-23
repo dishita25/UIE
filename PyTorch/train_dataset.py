@@ -113,7 +113,7 @@ def train_multiscale_dataset(opt):
     #         max_size=opt.max_image_size
     #     )
     
-    full_dataset = functions.create_dataset(
+    full_dataset = functions.create_data_loader(
         opt.poor_data_dir, 
         opt.good_data_dir, 
         max_size=opt.max_image_size
