@@ -95,50 +95,51 @@ def train_multiscale_dataset(opt):
     print(f"Good quality images: {opt.good_data_dir}")
     
     # Create data loaders
-    # train_loader = functions.create_data_loader(
-    #     opt.poor_data_dir, 
-    #     opt.good_data_dir, 
-    #     batch_size=opt.batch_size, 
-    #     shuffle=True,
-    #     max_size=opt.max_image_size
-    # )
-    
-    # val_loader = None
-    # if opt.val_poor_data_dir and opt.val_good_data_dir:
-    #     val_loader = functions.create_data_loader(
-    #         opt.val_poor_data_dir,
-    #         opt.val_good_data_dir,
-    #         batch_size=opt.val_batch_size,
-    #         shuffle=False,
-    #         max_size=opt.max_image_size
-    #     )
-    
-    full_dataset = functions.create_data_loader(
+    train_loader = functions.create_data_loader(
         opt.poor_data_dir, 
         opt.good_data_dir, 
+        batch_size=opt.batch_size, 
+        shuffle=True,
         max_size=opt.max_image_size
     )
+    
+    val_loader = None
+    if opt.val_poor_data_dir and opt.val_good_data_dir:
+        val_loader = functions.create_data_loader(
+            opt.val_poor_data_dir,
+            opt.val_good_data_dir,
+            batch_size=opt.val_batch_size,
+            shuffle=False,
+            max_size=opt.max_image_size
+        )
+    
+    
+    # full_dataset = functions.create_data_loader(
+    #     opt.poor_data_dir, 
+    #     opt.good_data_dir, 
+    #     max_size=opt.max_image_size
+    # )
 
-    total_size = len(full_dataset)
-    val_size = int(0.1 * total_size) # 10% for validation
-    train_size = total_size - val_size # 90% for training
+    # total_size = len(full_dataset)
+    # val_size = int(0.1 * total_size) # 10% for validation
+    # train_size = total_size - val_size # 90% for training
 
-    train_dataset, val_dataset = random_split(
-        full_dataset, 
-        [train_size, val_size]
-    )
+    # train_dataset, val_dataset = random_split(
+    #     full_dataset, 
+    #     [train_size, val_size]
+    # )
 
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=opt.batch_size, 
-        shuffle=True
-    )
+    # train_loader = DataLoader(
+    #     train_dataset, 
+    #     batch_size=opt.batch_size, 
+    #     shuffle=True
+    # )
 
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=opt.val_batch_size, 
-        shuffle=False 
-    )
+    # val_loader = DataLoader(
+    #     val_dataset, 
+    #     batch_size=opt.val_batch_size, 
+    #     shuffle=False 
+    # )
     
     
     print(f"Training samples: {len(train_loader.dataset)}")
