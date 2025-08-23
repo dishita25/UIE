@@ -167,27 +167,17 @@ def train_multiscale_dataset(opt):
         
         
         # Count parameters
-        gen_params = sum(p.numel() for p in generator.parameters())
-        disc_params = sum(p.numel() for p in discriminator.parameters())
-        print(f"\nScale {scale_num}: {target_h}x{target_w} resolution")
-        print(f"  Generator parameters: {gen_params:,}")
-        print(f"  Discriminator parameters: {disc_params:,}")
-        print(f"  Total parameters: {gen_params + disc_params:,}")
+        print("\nModel Summary:")
+        from torchinfo import summary
+        summary(generator, input_size=(1, 3, target_h, target_w), col_names=["input_size", "output_size", "num_params", "mult_adds"])
 
-        # FLOP estimation
-        try:
-            from thop import profile, clever_format
-            gen_input = torch.randn(1, 3, target_h, target_w).to(opt.device)
-            disc_input = torch.randn(1, 6, target_h, target_w).to(opt.device)
-            gen_macs, _ = profile(generator, inputs=(gen_input,), verbose=False)
-            disc_macs, _ = profile(discriminator, inputs=(disc_input,), verbose=False)
-            gen_flops_g = gen_macs*2/1e9
-            disc_flops_g = disc_macs*2/1e9
-            print(f"  Generator FLOPs: ~{gen_flops_g:.3f} GFLOPs")
-            print(f"  Discriminator FLOPs: ~{disc_flops_g:.3f} GFLOPs")
-            print(f"  Total FLOPs: ~{gen_flops_g+disc_flops_g:.3f} GFLOPs")
-        except ImportError:
-            print("  Install 'thop' for FLOP analysis")
+        from thop import profile, clever_format
+        gen_input = torch.randn(1, 3, target_h, target_w).to(opt.device)
+        disc_input = torch.randn(1, 6, target_h, target_w).to(opt.device)
+        gen_macs, gen_params = profile(generator, inputs=(gen_input,), verbose=False)
+        disc_macs, disc_params = profile(discriminator, inputs=(disc_input,), verbose=False)
+        print(f"Generator: {gen_params:,} params, {gen_macs*2/1e9:.2f} GFLOPs")
+        print(f"Discriminator: {disc_params:,} params, {disc_macs*2/1e9:.2f} GFLOPs")
 
 
         
