@@ -165,7 +165,8 @@ def train_multiscale_dataset(opt):
         generator = GeneratorFunieGAN(3, 3).to(opt.device)
         discriminator = DiscriminatorFunieGAN(3).to(opt.device)
         
-        
+        # Training loop for this scale
+        target_h, target_w = HARDCODED_SCALES[scale_num]
         
         # Count parameters
         print("\nModel Summary:")
@@ -195,9 +196,7 @@ def train_multiscale_dataset(opt):
         l1_loss = nn.L1Loss().to(opt.device)
         vgg_loss = VGG19_PercepLoss().to(opt.device)
         
-        # Training loop for this scale
-        target_h, target_w = HARDCODED_SCALES[scale_num]
-        
+                
         for epoch in range(opt.niter):
             epoch_g_loss = 0.0
             epoch_d_loss = 0.0
