@@ -175,9 +175,12 @@ def train_multiscale_dataset(opt):
 
         from thop import profile, clever_format
         gen_input = torch.randn(1, 3, target_h, target_w).to(opt.device)
-        disc_input = torch.randn(1, 6, target_h, target_w).to(opt.device)
+        disc_input_A = torch.randn(1, 3, target_h, target_w).to(opt.device)  # img_A
+        disc_input_B = torch.randn(1, 3, target_h, target_w).to(opt.device)  # img_B
+
         gen_macs, gen_params = profile(generator, inputs=(gen_input,), verbose=False)
-        disc_macs, disc_params = profile(discriminator, inputs=(disc_input,), verbose=False)
+        disc_macs, disc_params = profile(discriminator, inputs=(disc_input_A, disc_input_B), verbose=False)
+        
         print(f"Generator: {gen_params:,} params, {gen_macs*2/1e9:.2f} GFLOPs")
         print(f"Discriminator: {disc_params:,} params, {disc_macs*2/1e9:.2f} GFLOPs")
 
