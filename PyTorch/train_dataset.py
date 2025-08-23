@@ -52,7 +52,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=2, help="Number of iterations per scale") # Make it 100 or 200
+    parser.add_argument("--niter", type=int, default=201, help="Number of iterations per scale") # Make it 100 or 200
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
@@ -329,7 +329,6 @@ def train_multiscale_dataset(opt):
         'Zs': Zs,
         'NoiseAmp': NoiseAmp,
         'scales': HARDCODED_SCALES,
-        'opt': opt,
     }, final_model_path)
     
     print(f"Training completed! Final model saved to {final_model_path}")
@@ -340,7 +339,7 @@ def test_model(opt, model_path):
     print("Testing trained model...")
     
     # Load trained model
-    checkpoint = torch.load(model_path, map_location=opt.device)
+    checkpoint = torch.load(model_path, map_location=opt.device, weights_only=False)
     
     # Create test data loader
     test_loader = functions.create_data_loader(
