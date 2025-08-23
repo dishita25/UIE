@@ -28,8 +28,8 @@ def get_config():
     parser = argparse.ArgumentParser()
     
     # Dataset paths (NEW)
-    parser.add_argument("--poor_data_dir", type=str, required=True, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA")
-    parser.add_argument("--good_data_dir", type=str, required=True, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainB")
+    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA")
+    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainB")
     parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
     parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/GTr")
     
@@ -52,7 +52,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=500, help="Number of iterations per scale")
+    parser.add_argument("--niter", type=int, default=2, help="Number of iterations per scale") # Make it 100 or 200
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
@@ -135,6 +135,33 @@ def train_multiscale_dataset(opt):
         # Initialize networks
         generator = GeneratorFunieGAN(3, 3).to(opt.device)
         discriminator = DiscriminatorFunieGAN(3).to(opt.device)
+        
+        
+        
+        # Count parameters
+        gen_params = sum(p.numel() for p in generator.parameters())
+        disc_params = sum(p.numel() for p in discriminator.parameters())
+        print(f"\nScale {scale_num}: {target_h}x{target_w} resolution")
+        print(f"  Generator parameters: {gen_params:,}")
+        print(f"  Discriminator parameters: {disc_params:,}")
+        print(f"  Total parameters: {gen_params + disc_params:,}")
+
+        # FLOP estimation
+        try:
+            from thop import profile, clever_format
+            gen_input = torch.randn(1, 3, target_h, target_w).to(opt.device)
+            disc_input = torch.randn(1, 6, target_h, target_w).to(opt.device)
+            gen_macs, _ = profile(generator, inputs=(gen_input,), verbose=False)
+            disc_macs, _ = profile(discriminator, inputs=(disc_input,), verbose=False)
+            gen_flops_g = gen_macs*2/1e9
+            disc_flops_g = disc_macs*2/1e9
+            print(f"  Generator FLOPs: ~{gen_flops_g:.3f} GFLOPs")
+            print(f"  Discriminator FLOPs: ~{disc_flops_g:.3f} GFLOPs")
+            print(f"  Total FLOPs: ~{gen_flops_g+disc_flops_g:.3f} GFLOPs")
+        except ImportError:
+            print("  Install 'thop' for FLOP analysis")
+
+
         
         # Apply weight initialization
         generator.apply(Weights_Normal)
