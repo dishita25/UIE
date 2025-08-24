@@ -18,7 +18,7 @@ from nets.commons import VGG19_PercepLoss, Weights_Normal
 # Hard-coded scales (can be made configurable)
 HARDCODED_SCALES = [
     (64, 64),
-    (96, 96), 
+    #(96, 96), 
     (128, 128),
     (192, 192),
     (256, 256),
