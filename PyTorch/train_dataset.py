@@ -128,7 +128,7 @@ def clean_state_dict(state_dict):
     cleaned_state_dict = {}
     for key, value in state_dict.items():
         # Skip keys added by THOP profiling
-        if not (key.endswith('.total_ops') or key.endswith('.total_params')):
+        if not (key.endswith('total_ops') or key.endswith('total_params')):
             cleaned_state_dict[key] = value
     
     print(f"Cleaned state dict: removed {len(state_dict) - len(cleaned_state_dict)} THOP keys")
