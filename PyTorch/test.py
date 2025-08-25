@@ -106,17 +106,14 @@ import torchvision.transforms as transforms
 
 # metrics
 from torchmetrics.image import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
-# Import the GeneratorFunieGAN from your project
 from nets import funiegan
 
-## options
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/Dark/Dark_all_in")
-parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/Dark/Dark_all_gt")  
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
+parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr")  
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
-parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-# Corrected: Added '--' to make model_path an optional argument with a default value.
+parser.add_argument("--model_name", type=str, default="funiegan") 
 parser.add_argument("--model_path", type=str, default="/kaggle/input/funie-sin-attention-with-100-epochs/UIE/TrainedModels/EUVP/final_model.pth")
 
 opt = parser.parse_args(args=[])
@@ -140,6 +137,7 @@ checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_c
 generator_state_dict = checkpoint['Gs'][-1]
 clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
 model.load_state_dict(clean_state_dict, strict=False)
+
 
 if is_cuda: model.cuda()
 model.eval()
