@@ -112,12 +112,13 @@ from nets import funiegan
 
 ## options
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
-parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GT")  
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/Dark/Dark_all_in")
+parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/Dark/Dark_all_gt")  
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("model_path", type=str, default="/kaggle/input/funie-sin-attention-with-100-epochs/UIE/TrainedModels/EUVP/final_model.pth")
+# Corrected: Added '--' to make model_path an optional argument with a default value.
+parser.add_argument("--model_path", type=str, default="/kaggle/input/funie-sin-attention-with-100-epochs/UIE/TrainedModels/EUVP/final_model.pth")
 
 opt = parser.parse_args(args=[])
 
