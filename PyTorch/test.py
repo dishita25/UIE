@@ -137,8 +137,9 @@ else:
 
 ## load weights
 checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_cuda else 'cpu'), weights_only=False)
-generator_state_dict = checkpoint['Gs'][-1] 
-model.load_state_dict(generator_state_dict)
+generator_state_dict = checkpoint['Gs'][-1]
+clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
+model.load_state_dict(clean_state_dict, strict=False)
 
 if is_cuda: model.cuda()
 model.eval()
