@@ -43,14 +43,14 @@ else:
 ## load weights
 # Load the entire checkpoint dictionary
 checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_cuda else 'cpu'), weights_only=False)
-print(checkpoint)
 
 # The 'Gs' key holds a list of generator state dictionaries. 
 # We want the state of the final generator, which is the last one in the list.
 generator_state_dict = checkpoint['Gs'][-1] 
 
 # Now load the extracted state dictionary into the model
-model.load_state_dict(generator_state_dict)
+clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
+model.load_state_dict(clean_state_dict, strict=False)
 
 if is_cuda: model.cuda()
 model.eval()
