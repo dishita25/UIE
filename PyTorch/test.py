@@ -105,8 +105,7 @@ from torchvision.utils import save_image
 import torchvision.transforms as transforms
 
 # metrics
-from torchmetrics import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
-
+from torchmetrics.image import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
 # Import the GeneratorFunieGAN from your project
 from nets import funiegan
 
