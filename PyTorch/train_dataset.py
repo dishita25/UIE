@@ -69,8 +69,8 @@ def get_config():
     
     # Validation and logging
     parser.add_argument("--val_freq", type=int, default=100, help="Validation frequency")
-    parser.add_argument("--save_freq", type=int, default=200, help="Model save frequency")
-    parser.add_argument("--sample_freq", type=int, default=100, help="Sample generation frequency")
+    parser.add_argument("--save_freq", type=int, default=50, help="Model save frequency")
+    parser.add_argument("--sample_freq", type=int, default=50, help="Sample generation frequency")
     
     args = parser.parse_args()
     
@@ -265,7 +265,7 @@ def train_multiscale_dataset(opt):
                 num_batches += 1
                 
                 # Log progress
-                if batch_idx % 20 == 0:
+                if batch_idx % 50 == 0:
                     print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                           f"G_loss: {g_loss.item():.4f}, D_loss: {d_loss.item():.4f}")
             
