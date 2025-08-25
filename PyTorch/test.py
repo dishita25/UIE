@@ -155,12 +155,17 @@ ssim_metric = StructuralSimilarityIndexMeasure(data_range=1.0).cuda() if is_cuda
 psnr_metric = PeakSignalNoiseRatio(data_range=1.0).cuda() if is_cuda else PeakSignalNoiseRatio(data_range=1.0)
 
 ## testing loop
+## testing loop
+
 times = []
+psnr_values = []
+ssim_values = []
+
 test_files = sorted(glob(join(opt.data_dir, "*.*")))
 for path in test_files:
     inp_img = transform(Image.open(path))
     inp_img = Variable(inp_img).type(Tensor).unsqueeze(0)
-    
+
     # load ground truth image
     gt_path = join(opt.gt_dir, basename(path))
     if not exists(gt_path):
@@ -175,7 +180,7 @@ for path in test_files:
     with torch.no_grad():
         gen_img = model(inp_img)
     times.append(time.time()-s)
-    
+
     # save output
     img_sample = torch.cat((inp_img.data, gen_img.data), -1)
     save_image(gen_img, join(opt.enhanced_dir, basename(path)), normalize=True)
@@ -185,13 +190,21 @@ for path in test_files:
     if gt_img is not None:
         ssim_val = ssim_metric(gen_img, gt_img).item()
         psnr_val = psnr_metric(gen_img, gt_img).item()
+        ssim_values.append(ssim_val)
+        psnr_values.append(psnr_val)
         print(f"Tested: {basename(path)} | SSIM: {ssim_val:.4f} | PSNR: {psnr_val:.2f} dB")
     else:
         print(f"Tested: {basename(path)}")
 
-## run-time    
-if (len(times) > 1):
-    print ("\nTotal samples: %d" % len(test_files)) 
-    Ttime, Mtime = np.sum(times[1:]), np.mean(times[1:]) 
-    print ("Time taken: %d sec at %0.3f fps" %(Ttime, 1./Mtime))
-    print("Saved generated images in %s\n" %(opt.sample_dir))
+## run-time and final metrics
+if len(times) > 1:
+    print("\nTotal samples: %d" % len(test_files))
+    Ttime, Mtime = np.sum(times[1:]), np.mean(times[1:])
+    print("Time taken: %d sec at %0.3f fps" % (Ttime, 1./Mtime))
+    print("Saved generated images in %s\n" % (opt.sample_dir))
+
+if psnr_values and ssim_values:
+    mean_psnr = np.mean(psnr_values)
+    mean_ssim = np.mean(ssim_values)
+    print(f"\nMean PSNR: {mean_psnr:.2f} dB")
+    print(f"Mean SSIM: {mean_ssim:.4f}")
