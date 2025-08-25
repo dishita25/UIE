@@ -22,7 +22,7 @@ parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/output/UIE/TrainedModels/264286_00007889/scale_factor=0.750000,alpha=10/final_model.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/output/UIE/TrainedModels/EUVP/scale_4/checkpoint_epoch_200.pth")
 opt = parser.parse_args()
 
 ## checks
@@ -88,4 +88,4 @@ if (len(times) > 1):
     # accumulate frame processing times (without bootstrap)
     Ttime, Mtime = np.sum(times[1:]), np.mean(times[1:]) 
     print ("Time taken: %d sec at %0.3f fps" %(Ttime, 1./Mtime))
-    print("Saved generated images in in %s\n" %(opt.sample_dir))
+    print("Saved generated images in %s\n" %(opt.sample_dir))
