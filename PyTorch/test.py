@@ -24,6 +24,9 @@ parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
 parser.add_argument("--model_path", type=str, default="/kaggle/input/funie-sin-attention-with-100-epochs/UIE/TrainedModels/EUVP/final_model.pth")
 
+opt = parser.parse_args()
+
+
 ## checks
 assert exists(opt.model_path), "model not found"
 os.makedirs(opt.sample_dir, exist_ok=True)
