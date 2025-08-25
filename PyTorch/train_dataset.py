@@ -28,10 +28,10 @@ def get_config():
     parser = argparse.ArgumentParser()
     
     # Dataset paths (NEW)
-    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA")
-    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainB")
-    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
-    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/GTr")
+    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA")
+    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB")
+    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
+    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr")
     
     # Training parameters
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
