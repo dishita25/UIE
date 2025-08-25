@@ -105,9 +105,13 @@ def load_checkpoint_for_resume(opt, checkpoint_path):
     
     checkpoint = torch.load(checkpoint_path, map_location=opt.device, weights_only=False)
     
+    # Clean state dicts to remove THOP-added keys
+    generator_state = clean_state_dict(checkpoint['generator'])
+    discriminator_state = clean_state_dict(checkpoint['discriminator'])
+    
     resume_info = {
-        'generator_state': checkpoint['generator'],
-        'discriminator_state': checkpoint['discriminator'], 
+        'generator_state': generator_state,
+        'discriminator_state': discriminator_state,
         'optimizer_G_state': checkpoint['optimizer_G'],
         'optimizer_D_state': checkpoint['optimizer_D'],
         'resume_scale': checkpoint['scale'],
@@ -118,6 +122,17 @@ def load_checkpoint_for_resume(opt, checkpoint_path):
     print(f"Will resume training from Scale: {resume_info['resume_scale']}, Epoch: {resume_info['resume_epoch']}")
     
     return resume_info
+
+def clean_state_dict(state_dict):
+    """Remove THOP-added keys from state dict"""
+    cleaned_state_dict = {}
+    for key, value in state_dict.items():
+        # Skip keys added by THOP profiling
+        if not (key.endswith('.total_ops') or key.endswith('.total_params')):
+            cleaned_state_dict[key] = value
+    
+    print(f"Cleaned state dict: removed {len(state_dict) - len(cleaned_state_dict)} THOP keys")
+    return cleaned_state_dict
 
 
 def train_multiscale_dataset(opt):
