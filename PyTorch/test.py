@@ -46,7 +46,7 @@ checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_c
 
 # The 'Gs' key holds a list of generator state dictionaries. 
 # We want the state of the final generator, which is the last one in the list.
-generator_state_dict = checkpoint['generator']
+generator_state_dict = checkpoint['Gs'][-1]
 
 # Now load the extracted state dictionary into the model
 clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
