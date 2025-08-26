@@ -613,10 +613,10 @@ def get_config():
     parser = argparse.ArgumentParser()
     
     # Dataset paths - CORRECTED FOR EUVP STRUCTURE
-    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_imagenet/trainA")  # Changed to underwater_imagenet
-    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_imagenet/trainB")  # Changed to underwater_imagenet
-    parser.add_argument("--val_poor_data_dir", type=str, default=None)  # Disabled for now
-    parser.add_argument("--val_good_data_dir", type=str, default=None)  # Disabled for now
+    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA") 
+    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB")
+    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")  # Disabled for now
+    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr")  # Disabled for now
     
     # Training parameters
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size for training")  # Reduced from 32
@@ -637,7 +637,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=50, help="Number of iterations per scale")  # Reduced from 101
+    parser.add_argument("--niter", type=int, default=101, help="Number of iterations per scale")  
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
