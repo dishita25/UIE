@@ -201,7 +201,9 @@ def train_multiscale_dataset(opt):
                         
                         # Create and load previous generator
                         prev_generator = GeneratorFunieGAN(3, 3).to(opt.device)
-                        prev_generator.load_state_dict(prev_checkpoint['generator'])
+                        # prev_generator.load_state_dict(prev_checkpoint['generator'])
+                        cleaned_generator_state = clean_state_dict(prev_checkpoint['generator'])
+                        prev_generator.load_state_dict(cleaned_generator_state) 
                         prev_generator.eval()
                         Gs.append(prev_generator)
                         
