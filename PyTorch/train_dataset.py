@@ -749,9 +749,6 @@ def get_config():
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or test")
     parser.add_argument("--dataset_name", type=str, default="EUVP", help="Dataset name for saving")
     
-    # Loss weights
-    parser.add_argument("--lambda_color", type=float, default=3.0, help="Multi-scale color loss weight")
-    
     # Validation and logging
     parser.add_argument("--val_freq", type=int, default=100, help="Validation frequency")
     parser.add_argument("--save_freq", type=int, default=200, help="Model save frequency")
@@ -760,7 +757,7 @@ def get_config():
     # Loss weights
     parser.add_argument("--lambda_color", type=float, default=3.0, help="Multi-scale color loss weight")
     parser.add_argument("--lambda_ssim", type=float, default=1.0, help="SSIM loss weight")
-    parser.add_argument("--lambda_psnr", type=float, default=1.0, help="PSNR loss weight")
+    parser.add_argument("--lambda_psnr", type=float, default=0.5, help="PSNR loss weight")
   
     
     args = parser.parse_args()
