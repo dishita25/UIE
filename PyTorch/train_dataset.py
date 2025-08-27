@@ -610,48 +610,6 @@ def multi_scale_color_loss(output, target, vgg_loss_func, weights=[0.3, 0.4, 0.3
         return F.mse_loss(output, target)
     
 
-def gaussian(window_size, sigma):
-    """Create gaussian kernel"""
-    gauss = torch.Tensor([torch.exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
-    return gauss/gauss.sum()
-
-def create_window(window_size, channel):
-    """Create window for SSIM calculation"""
-    _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
-    _2D_window = _1D_window.mm(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
-    window = _2D_window.expand(channel, 1, window_size, window_size).contiguous()
-    return window
-
-def ssim(img1, img2, window_size=11, window=None, size_average=True, val_range=1.0):
-    """Calculate SSIM between two images"""
-    try:
-        channel = img1.size(1)
-        if window is None:
-            window = create_window(window_size, channel).to(img1.device)
-
-        mu1 = F.conv2d(img1, window, padding=window_size//2, groups=channel)
-        mu2 = F.conv2d(img2, window, padding=window_size//2, groups=channel)
-
-        mu1_sq = mu1.pow(2)
-        mu2_sq = mu2.pow(2)
-        mu1_mu2 = mu1 * mu2
-
-        sigma1_sq = F.conv2d(img1 * img1, window, padding=window_size//2, groups=channel) - mu1_sq
-        sigma2_sq = F.conv2d(img2 * img2, window, padding=window_size//2, groups=channel) - mu2_sq
-        sigma12 = F.conv2d(img1 * img2, window, padding=window_size//2, groups=channel) - mu1_mu2
-
-        C1 = (0.01 * val_range) ** 2
-        C2 = (0.03 * val_range) ** 2
-
-        ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2))
-
-        if size_average:
-            return ssim_map.mean()
-        else:
-            return ssim_map.mean(1).mean(1).mean(1)
-    except Exception as e:
-        print(f"Error in SSIM calculation: {e}")
-        return torch.tensor(0.5, device=img1.device)  # Return neutral value
 
 def gaussian(window_size, sigma):
     """Create gaussian kernel"""
@@ -707,7 +665,6 @@ def psnr(img1, img2, max_val=1.0):
     except Exception as e:
         print(f"Error in PSNR calculation: {e}")
         return torch.tensor(20.0, device=img1.device)  # Return neutral value
-
 
 
 def get_config():
@@ -974,12 +931,14 @@ def train_multiscale_dataset(opt):
                     
                     # Log progress
 
+
                     if batch_idx % 20 == 0:
                         print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                               f"G_loss: {g_loss.item():.4f} (Adv: {g_adv_loss.item():.4f}, "
                               f"Color: {g_color_loss.item():.4f}, SSIM: {ssim_loss.item():.4f}, "
                               f"PSNR: {psnr_loss.item():.4f}), D_loss: {d_loss.item():.4f}, "
                               f"SSIM_val: {ssim_val.item():.4f}, PSNR_val: {psnr_val.item():.2f}")
+                        
                     # if batch_idx % 20 == 0:
                     #     print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                     #           f"G_loss: {g_loss.item():.4f} (Adv: {g_adv_loss.item():.4f}, "
