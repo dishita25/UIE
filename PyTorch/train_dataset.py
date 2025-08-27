@@ -74,7 +74,8 @@ def get_config():
     
     # Resume training parameters
     parser.add_argument("--resume", action='store_true', help="Resume training from checkpoint")
-    parser.add_argument("--resume_path", type=str, default="/kaggle/output/UIE/TrainedModels/EUVP/scale_4/checkpoint_epoch_0.pth", help="Path to checkpoint to resume from")
+    parser.add_argument("--resume_out", type=str, default="/kaggle/input/previous-weights/UIE/TrainedModels", help="Output directory")
+    parser.add_argument("--resume_path", type=str, default="/kaggle/input/previous-weights/UIE/TrainedModels/EUVP/scale_4/checkpoint_epoch_0.pth", help="Path to checkpoint to resume from")
     parser.add_argument("--resume_scale", type=int, default=4, help="Scale to resume from (-1 for auto-detect)")
     parser.add_argument("--resume_epoch", type=int, default=0, help="Epoch to resume from (-1 for auto-detect)")
     
@@ -189,7 +190,7 @@ def train_multiscale_dataset(opt):
             print("Loading previously trained generators...")
             for prev_scale in range(start_scale):
                 # Try to find the latest checkpoint for each previous scale
-                prev_scale_dir = os.path.join(opt.out, opt.dataset_name, f"scale_{prev_scale}")
+                prev_scale_dir = os.path.join(opt.resume_out, opt.dataset_name, f"scale_{prev_scale}")
                 if os.path.exists(prev_scale_dir):
                     # Find the latest checkpoint in this scale
                     checkpoints = [f for f in os.listdir(prev_scale_dir) if f.startswith("checkpoint_epoch_") and f.endswith(".pth")]
