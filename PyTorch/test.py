@@ -22,7 +22,7 @@ parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
-parser.add_argument("--model_path", type=str, default="/kaggle/output/UIE/TrainedModels/EUVP/final_model.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/TrainedModels/EUVP/final_model.pth")
 opt = parser.parse_args()
 
 ## checks
