@@ -613,8 +613,12 @@ def multi_scale_color_loss(output, target, vgg_loss_func, weights=[0.3, 0.4, 0.3
 
 def gaussian(window_size, sigma):
     """Create gaussian kernel"""
-    gauss = torch.Tensor([torch.exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
-    return gauss/gauss.sum()
+    # Create tensor values first, then apply exp
+    x_values = torch.arange(window_size, dtype=torch.float32)
+    center = window_size // 2
+    gauss = torch.exp(-(x_values - center)**2 / (2 * sigma**2))
+    return gauss / gauss.sum()
+
 
 def create_window(window_size, channel):
     """Create window for SSIM calculation"""
