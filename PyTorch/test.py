@@ -114,7 +114,7 @@ parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EU
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan") 
-parser.add_argument("--model_path", type=str, default="/kaggle/input/funie-sin-attention-with-colour-space-losses/UIE/TrainedModels/EUVP/final_model.pth")
+parser.add_argument("--model_path", type=str, default="/kaggle/input/funie-sin-attention-psnr-ssim-loss/UIE/TrainedModels/EUVP/final_model.pth")
 
 opt = parser.parse_args(args=[])
 
