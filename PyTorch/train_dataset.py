@@ -658,17 +658,17 @@ def ssim(img1, img2, window_size=11, window=None, size_average=True, val_range=1
         print(f"Error in SSIM calculation: {e}")
         return torch.tensor(0.5, device=img1.device)  # Return neutral value
 
-def psnr(img1, img2, max_val=1.0):
-    """Calculate PSNR between two images"""
-    try:
-        mse = F.mse_loss(img1, img2, reduction='mean')
-        if mse < 1e-10:  # Avoid division by zero
-            return torch.tensor(100.0, device=img1.device)
-        psnr_val = 10 * torch.log10(max_val ** 2 / mse)
-        return torch.clamp(psnr_val, 0, 100)  # Clamp to reasonable range
-    except Exception as e:
-        print(f"Error in PSNR calculation: {e}")
-        return torch.tensor(20.0, device=img1.device)  # Return neutral value
+# def psnr(img1, img2, max_val=1.0):
+#     """Calculate PSNR between two images"""
+#     try:
+#         mse = F.mse_loss(img1, img2, reduction='mean')
+#         if mse < 1e-10:  # Avoid division by zero
+#             return torch.tensor(100.0, device=img1.device)
+#         psnr_val = 10 * torch.log10(max_val ** 2 / mse)
+#         return torch.clamp(psnr_val, 0, 100)  # Clamp to reasonable range
+#     except Exception as e:
+#         print(f"Error in PSNR calculation: {e}")
+#         return torch.tensor(20.0, device=img1.device)  # Return neutral value
 
 
 def get_config():
@@ -718,7 +718,7 @@ def get_config():
     # Loss weights
     parser.add_argument("--lambda_color", type=float, default=3.0, help="Multi-scale color loss weight")
     parser.add_argument("--lambda_ssim", type=float, default=1.0, help="SSIM loss weight")
-    parser.add_argument("--lambda_psnr", type=float, default=0.5, help="PSNR loss weight")
+    #parser.add_argument("--lambda_psnr", type=float, default=0.5, help="PSNR loss weight")
   
     
     args = parser.parse_args()
@@ -905,12 +905,12 @@ def train_multiscale_dataset(opt):
                     g_color_loss = multi_scale_color_loss(fake_batch, good_batch_scaled, vgg_loss)
 
                     ssim_val = ssim(fake_batch, good_batch_scaled)
-                    psnr_val = psnr(fake_batch, good_batch_scaled)
+                    #psnr_val = psnr(fake_batch, good_batch_scaled)
                     ssim_loss = 1 - ssim_val
-                    psnr_loss = 1 - psnr_val / 30  # Normalize PSNR by 30
+                    #psnr_loss = 1 - psnr_val / 30  # Normalize PSNR by 30
 
 # Combined generator loss
-                    g_loss = (1.0 * g_adv_loss + opt.lambda_color * g_color_loss + opt.lambda_ssim * ssim_loss + opt.lambda_psnr * psnr_loss)
+                    g_loss = (1.0 * g_adv_loss + opt.lambda_color * g_color_loss + opt.lambda_ssim * ssim_loss) # + opt.lambda_psnr * psnr_loss)
 
                     
                     # Combined generator loss: adversarial loss * 1, color loss * 3
@@ -940,8 +940,8 @@ def train_multiscale_dataset(opt):
                         print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                               f"G_loss: {g_loss.item():.4f} (Adv: {g_adv_loss.item():.4f}, "
                               f"Color: {g_color_loss.item():.4f}, SSIM: {ssim_loss.item():.4f}, "
-                              f"PSNR: {psnr_loss.item():.4f}), D_loss: {d_loss.item():.4f}, "
-                              f"SSIM_val: {ssim_val.item():.4f}, PSNR_val: {psnr_val.item():.2f}")
+                              f"D_loss: {d_loss.item():.4f}, "  #PSNR: {psnr_loss.item():.4f}),
+                              f"SSIM_val: {ssim_val.item():.4f}") # PSNR_val: {psnr_val.item():.2f}")
                         
                     # if batch_idx % 20 == 0:
                     #     print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
