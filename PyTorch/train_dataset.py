@@ -1076,7 +1076,7 @@ def train_multiscale_dataset(opt):
             
             # Store trained models
 
-            total_epochs_completed += opt.niter
+            
 
             generator.eval()
             Gs.append(generator)
@@ -1085,6 +1085,7 @@ def train_multiscale_dataset(opt):
             z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
             Zs.append(z_opt)
             NoiseAmp.append(opt.noise_amp_init)
+            total_epochs_completed += opt.niter
             
             print(f"Scale {scale_num} completed!")
         
