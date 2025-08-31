@@ -173,12 +173,7 @@ def train_multiscale_dataset(opt):
     start_scale = 0
     
     if opt.resume:
-        # Auto-detect checkpoint path if not provided
-        if not opt.resume_path:
-            resume_scale = opt.resume_scale if opt.resume_scale >= 0 else 4
-            resume_epoch = opt.resume_epoch if opt.resume_epoch >= 0 else 0
-            opt.resume_path = os.path.join(opt.out, opt.dataset_name, f"scale_{resume_scale}", f"checkpoint_epoch_{resume_epoch}.pth")
-        
+    
         resume_info = load_checkpoint_for_resume(opt, opt.resume_path)
         if resume_info is None:
             print("Failed to load checkpoint. Starting fresh training.")
@@ -189,11 +184,15 @@ def train_multiscale_dataset(opt):
             # Load previously trained generators for earlier scales
             print("Loading previously trained generators...")
             for prev_scale in range(start_scale):
+                
                 # Try to find the latest checkpoint for each previous scale
                 prev_scale_dir = os.path.join(opt.resume_out, opt.dataset_name, f"scale_{prev_scale}")
+                
                 if os.path.exists(prev_scale_dir):
+                    
                     # Find the latest checkpoint in this scale
                     checkpoints = [f for f in os.listdir(prev_scale_dir) if f.startswith("checkpoint_epoch_") and f.endswith(".pth")]
+                    
                     if checkpoints:
                         latest_checkpoint = max(checkpoints, key=lambda x: int(x.split("_")[-1].split(".")[0]))
                         prev_checkpoint_path = os.path.join(prev_scale_dir, latest_checkpoint)
@@ -201,7 +200,6 @@ def train_multiscale_dataset(opt):
                         
                         # Create and load previous generator
                         prev_generator = GeneratorFunieGAN(3, 3).to(opt.device)
-                        # prev_generator.load_state_dict(prev_checkpoint['generator'])
                         cleaned_generator_state = clean_state_dict(prev_checkpoint['generator'])
                         prev_generator.load_state_dict(cleaned_generator_state) 
                         prev_generator.eval()
