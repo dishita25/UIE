@@ -73,8 +73,8 @@ img_width, img_height, channels = 256, 256, 3
 transforms_ = [
     transforms.Resize((img_height, img_width), Image.BICUBIC),
     transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ]
+
 transform = transforms.Compose(transforms_)
 
 ## testing loop with multi-scale processing
