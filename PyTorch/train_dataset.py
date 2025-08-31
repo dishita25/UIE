@@ -778,6 +778,7 @@ def train_multiscale_dataset(opt):
     Gs, Zs, NoiseAmp = [], [], []
     global_step = 0
     total_epochs_across_scales = 0
+    total_epochs_completed = 0  
     try:
         # Check if directories exist
         if not os.path.exists(opt.poor_data_dir):
@@ -979,7 +980,7 @@ def train_multiscale_dataset(opt):
                             "global_step": global_step,
                             "scale": scale_num,
                             "epoch": epoch,  # This resets to 0 for each scale
-                            "total_epoch": total_epochs_completed + epoch,  # Cumulative across scales
+                            "total_epoch": scale_num * opt.niter + epoch,  # Calculate based on current position
                             
                             # Generator losses
                             "G_loss_total": g_loss.item(),
@@ -1022,7 +1023,7 @@ def train_multiscale_dataset(opt):
                         "epoch_avg_D_loss": avg_d_loss,
                         "scale": scale_num,
                         "epoch": epoch,
-                        "total_epoch": total_epochs_completed + epoch,
+                        "total_epoch": scale_num * opt.niter + epoch,  # Calculate based on current position
                     })
                 
                 # Validation (skip if function not available)
@@ -1039,7 +1040,7 @@ def train_multiscale_dataset(opt):
                                 "val_D_loss": val_d_loss,
                                 "scale": scale_num,
                                 "epoch": epoch,
-                                "total_epoch": total_epochs_completed + epoch,
+                                "total_epoch": scale_num * opt.niter + epoch,  # Calculate based on current position
                             })
 
                     except:
