@@ -435,6 +435,7 @@ import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
+import wandb
 
 # Import the modified functions and dataset class
 import functions_dataset as functions
@@ -719,6 +720,19 @@ def get_config():
     parser.add_argument("--lambda_color", type=float, default=3.0, help="Multi-scale color loss weight")
     parser.add_argument("--lambda_ssim", type=float, default=1.0, help="SSIM loss weight")
     #parser.add_argument("--lambda_psnr", type=float, default=0.5, help="PSNR loss weight")
+
+    # Wandb configuration
+    parser.add_argument("--wandb_project", type=str, default="FUnIE_SIN_Attention with 200 epochs, no PSNR loss", help="Wandb project name")
+    parser.add_argument("--wandb_run_name", type=str, default=None, 
+                       help="Wandb run name (auto-generated if None)")
+    parser.add_argument("--wandb_tags", nargs='+', default=[], 
+                       help="Wandb tags for this run")
+    parser.add_argument("--log_freq", type=int, default=20, 
+                       help="Frequency of logging to wandb (every N batches)")
+    parser.add_argument("--disable_wandb", action='store_true', 
+                       help="Disable wandb logging")
+    parser.add_argument("--log_images_freq", type=int, default=25, 
+                       help="Frequency of logging sample images to wandb")
   
     
     args = parser.parse_args()
@@ -739,6 +753,23 @@ def get_config():
 
 def train_multiscale_dataset(opt):
     """Train FunieGAN on dataset using multi-scale approach"""
+
+    if not opt.disable_wandb:
+        wandb.init(
+            project=opt.wandb_project,
+            name=opt.wandb_run_name,
+            config={
+                'lr_g': opt.lr_g,
+                'lr_d': opt.lr_d, 
+                'lambda_color': opt.lambda_color,
+                'lambda_ssim': opt.lambda_ssim,
+                'batch_size': opt.batch_size,
+                'niter': opt.niter
+            }
+        )
+
+
+
     print(f"Training on device: {opt.device}")
     print(f"Poor quality images: {opt.poor_data_dir}")
     print(f"Good quality images: {opt.good_data_dir}")
@@ -791,6 +822,9 @@ def train_multiscale_dataset(opt):
         if len(train_loader.dataset) == 0:
             print("Error: No training samples found. Please check your dataset paths.")
             return Gs, Zs, NoiseAmp
+        
+        global_step = 0
+        total_epochs_across_scales = 0
         
         # Train at each scale
         for scale_num in range(len(HARDCODED_SCALES)):
@@ -852,6 +886,9 @@ def train_multiscale_dataset(opt):
                 num_batches = 0
                 
                 for batch_idx, (poor_batch, good_batch, filenames) in enumerate(train_loader):
+
+                    global_step += 1
+
                     # Move to device
                     poor_batch = poor_batch.to(opt.device)
                     good_batch = good_batch.to(opt.device)
@@ -936,6 +973,31 @@ def train_multiscale_dataset(opt):
                     # Log progress
 
 
+                    if batch_idx % opt.log_freq == 0 and not opt.disable_wandb:
+                        wandb.log({
+                            # Basic tracking info
+                            "global_step": global_step,
+                            "scale": scale_num,
+                            "epoch": epoch,  # This resets to 0 for each scale
+                            "total_epoch": total_epochs_completed + epoch,  # Cumulative across scales
+                            
+                            # Generator losses
+                            "G_loss_total": g_loss.item(),
+                            "G_loss_adversarial": g_adv_loss.item(), 
+                            "G_loss_color": g_color_loss.item(),
+                            "G_loss_ssim": ssim_loss.item(),
+                            
+                            # Discriminator losses
+                            "D_loss_total": d_loss.item(),
+                            "D_loss_real": real_loss.item(),
+                            "D_loss_fake": fake_loss.item(),
+                            
+                            # Quality metric
+                            "SSIM_value": ssim_val.item(),
+                        })
+                    
+
+
                     if batch_idx % 20 == 0:
                         print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                               f"G_loss: {g_loss.item():.4f} (Adv: {g_adv_loss.item():.4f}, "
@@ -953,6 +1015,15 @@ def train_multiscale_dataset(opt):
                 avg_d_loss = epoch_d_loss / max(num_batches, 1)
                 
                 print(f"Scale {scale_num}, Epoch {epoch}: Avg G_loss: {avg_g_loss:.4f}, Avg D_loss: {avg_d_loss:.4f}")
+
+                if not opt.disable_wandb:
+                    wandb.log({
+                        "epoch_avg_G_loss": avg_g_loss,
+                        "epoch_avg_D_loss": avg_d_loss,
+                        "scale": scale_num,
+                        "epoch": epoch,
+                        "total_epoch": total_epochs_completed + epoch,
+                    })
                 
                 # Validation (skip if function not available)
                 if val_loader and epoch % opt.val_freq == 0:
@@ -961,6 +1032,16 @@ def train_multiscale_dataset(opt):
                             generator, discriminator, val_loader, mse_loss, opt.device, scale_num
                         )
                         print(f"Validation - G_loss: {val_g_loss:.4f}, D_loss: {val_d_loss:.4f}")
+
+                        if not opt.disable_wandb:
+                            wandb.log({
+                                "val_G_loss": val_g_loss,
+                                "val_D_loss": val_d_loss,
+                                "scale": scale_num,
+                                "epoch": epoch,
+                                "total_epoch": total_epochs_completed + epoch,
+                            })
+
                     except:
                         pass  # Skip validation if function not available
                 
@@ -994,6 +1075,9 @@ def train_multiscale_dataset(opt):
                     }, f"{opt.outf}/checkpoint_epoch_{epoch}.pth")
             
             # Store trained models
+
+            total_epochs_completed += opt.niter
+
             generator.eval()
             Gs.append(generator)
             
@@ -1021,6 +1105,12 @@ def train_multiscale_dataset(opt):
         print("Returning partial results...")
         import traceback
         traceback.print_exc()
+
+    finally:
+        # Finish wandb run
+        if not opt.disable_wandb:
+            wandb.finish()
+    
     
     # This return statement MUST be outside all try/except blocks and at the function level
     return Gs, Zs, NoiseAmp
