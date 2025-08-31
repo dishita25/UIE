@@ -776,7 +776,8 @@ def train_multiscale_dataset(opt):
     
     # Initialize return values at the start
     Gs, Zs, NoiseAmp = [], [], []
-    
+    global_step = 0
+    total_epochs_across_scales = 0
     try:
         # Check if directories exist
         if not os.path.exists(opt.poor_data_dir):
@@ -823,8 +824,7 @@ def train_multiscale_dataset(opt):
             print("Error: No training samples found. Please check your dataset paths.")
             return Gs, Zs, NoiseAmp
         
-        global_step = 0
-        total_epochs_across_scales = 0
+     
         
         # Train at each scale
         for scale_num in range(len(HARDCODED_SCALES)):
