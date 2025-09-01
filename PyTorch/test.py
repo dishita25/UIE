@@ -150,7 +150,7 @@ print(f"Found {len(checkpoint['Gs'])} generators in checkpoint")
 print(f"Scales: {scales}")
 
 for i, generator_state_dict in enumerate(checkpoint['Gs']):
-    generator = GeneratorFunieGAN(in_channels=3, out_channels=3)
+    generator = funiegan.GeneratorFunieGAN(in_channels=3, out_channels=3)
     cleaned_state_dict = clean_state_dict(generator_state_dict)
     generator.load_state_dict(cleaned_state_dict)
     generator.to(device)
