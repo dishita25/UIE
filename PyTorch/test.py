@@ -112,7 +112,8 @@ def clean_state_dict(state_dict):
     """Remove THOP-added keys from state dict"""
     cleaned_state_dict = {}
     for key, value in state_dict.items():
-        if not (key.endswith('.total_ops') or key.endswith('.total_params')):
+        if not (key == 'total_ops' or key == 'total_params' or 
+                key.endswith('.total_ops') or key.endswith('.total_params')):
             cleaned_state_dict[key] = value
     return cleaned_state_dict
 
