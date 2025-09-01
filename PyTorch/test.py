@@ -96,7 +96,7 @@ from glob import glob
 from ntpath import basename
 from os.path import join, exists
 
-# pytorch libs
+pytorch libs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -107,6 +107,14 @@ import torchvision.transforms as transforms
 # metrics
 from torchmetrics.image import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
 from nets import funiegan
+
+def clean_state_dict(state_dict):
+    """Remove THOP-added keys from state dict"""
+    cleaned_state_dict = {}
+    for key, value in state_dict.items():
+        if not (key.endswith('.total_ops') or key.endswith('.total_params')):
+            cleaned_state_dict[key] = value
+    return cleaned_state_dict
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
@@ -132,30 +140,45 @@ else:
     print("Model not supported in this script.")
     exit()
 
-## load weights
-checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_cuda else 'cpu'), weights_only=False)
-generator_state_dict = checkpoint['Gs'][-1]
-clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
-model.load_state_dict(clean_state_dict, strict=False)
+# ## load weights
+# checkpoint = torch.load(opt.model_path, map_location=torch.device('cuda' if is_cuda else 'cpu'), weights_only=False)
+checkpoint = torch.load(opt.model_path, map_location=device, weights_only=False)
+generators = []
+scales = checkpoint['scales'] 
+print(f"Found {len(checkpoint['Gs'])} generators in checkpoint")
+print(f"Scales: {scales}")
+
+for i, generator_state_dict in enumerate(checkpoint['Gs']):
+    generator = GeneratorFunieGAN(in_channels=3, out_channels=3)
+    cleaned_state_dict = clean_state_dict(generator_state_dict)
+    generator.load_state_dict(cleaned_state_dict)
+    generator.to(device)
+    generator.eval()
+    generators.append(generator)
+    print(f"Loaded generator {i} for scale {scales[i] if i < len(scales) else 'unknown'}")
+
+print(f"Successfully loaded {len(generators)} generators")
+
+# generator_state_dict = checkpoint['Gs'][-1]
+# clean_state_dict = {k: v for k, v in generator_state_dict.items() if "total_ops" not in k and "total_params" not in k}
+# model.load_state_dict(clean_state_dict, strict=False)
 
 
-if is_cuda: model.cuda()
-model.eval()
-print ("Loaded model from %s" % (opt.model_path))
+# if is_cuda: model.cuda()
+# model.eval()
+# print ("Loaded model from %s" % (opt.model_path))
 
 ## data pipeline
 img_width, img_height, channels = 256, 256, 3
 transforms_ = [transforms.Resize((img_height, img_width), Image.BICUBIC),
                transforms.ToTensor(),
-               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),]
+            ]
 transform = transforms.Compose(transforms_)
 
 ## metrics
 ssim_metric = StructuralSimilarityIndexMeasure(data_range=1.0).cuda() if is_cuda else StructuralSimilarityIndexMeasure(data_range=1.0)
 psnr_metric = PeakSignalNoiseRatio(data_range=1.0).cuda() if is_cuda else PeakSignalNoiseRatio(data_range=1.0)
 
-## testing loop
-## testing loop
 
 times = []
 psnr_values = []
