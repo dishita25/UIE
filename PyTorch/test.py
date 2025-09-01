@@ -131,6 +131,7 @@ assert exists(opt.model_path), "model not found"
 os.makedirs(opt.sample_dir, exist_ok=True)
 os.makedirs(opt.enhanced_dir, exist_ok=True)
 is_cuda = torch.cuda.is_available()
+device = torch.device('cuda' if is_cuda else 'cpu')
 Tensor = torch.cuda.FloatTensor if is_cuda else torch.FloatTensor 
 
 ## model arch
