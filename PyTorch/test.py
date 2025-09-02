@@ -266,7 +266,7 @@ def clean_state_dict(state_dict):
     return cleaned_state_dict
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp")
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/funie-sin-attention-with-colour-space-losses/UIE/TrainedModels/EUVP/final_model.pth")
 parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr")  
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
