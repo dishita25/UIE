@@ -769,7 +769,6 @@ def train_multiscale_dataset(opt):
         )
 
 
-
     print(f"Training on device: {opt.device}")
     print(f"Poor quality images: {opt.poor_data_dir}")
     print(f"Good quality images: {opt.good_data_dir}")
