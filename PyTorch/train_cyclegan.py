@@ -32,6 +32,37 @@ HARDCODED_SCALES = [
     (256, 256),
 ]
 
+class UnconditionalDiscriminator(nn.Module):
+    """Simple unconditional discriminator for CycleGAN"""
+    def __init__(self, input_nc=3, ndf=64):
+        super(UnconditionalDiscriminator, self).__init__()
+        
+        # Use the same architecture as FunieGAN discriminator but with single input
+        self.net = nn.Sequential(
+            # Input: nc x 256 x 256
+            nn.Conv2d(input_nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size: ndf x 128 x 128
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size: (ndf*2) x 64 x 64
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size: (ndf*4) x 32 x 32
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size: (ndf*8) x 16 x 16
+            nn.Conv2d(ndf * 8, 1, 4, 2, 1, bias=False),
+            # Final state size: 1 x 8 x 8
+        )
+
+    def forward(self, input):
+        output = self.net(input)
+        return output.view(output.size(0), -1).mean(1).unsqueeze(1)  # Global average
+
 def validate_cyclegan_model(G_X2Y, val_loader, device, current_scale):
     """Validate CycleGAN model and calculate SSIM/PSNR using PyTorch metrics"""
     G_X2Y.eval()
@@ -85,8 +116,8 @@ def get_config():
     # Dataset paths
     parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA", help="Directory containing blurry input images")
     parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Directory containing ground truth images")
-    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp", help="Validation blurry images")
-    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr", help="Validation ground truth images")
+    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/valA", help="Validation blurry images")
+    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/valB", help="Validation ground truth images")
     
     # Model parameters
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
@@ -99,7 +130,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate") 
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=10, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=2000, help="Number of iterations")
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("--val_batch_size", type=int, default=4, help="Validation batch size")
     
@@ -213,11 +244,11 @@ def train_multiscale_basic_cyclegan(opt):
             opt.outf = os.path.join(opt.out, opt.dataset_name, f"scale_{scale_num}")
             os.makedirs(opt.outf, exist_ok=True)
             
-            # Initialize networks
+            # Initialize networks - Use UnconditionalDiscriminator for CycleGAN
             G = GeneratorFunieGAN(3, 3).to(opt.device)  # X -> Y (blur -> real)
             F = GeneratorFunieGAN(3, 3).to(opt.device)  # Y -> X (real -> blur)
-            Dx = DiscriminatorFunieGAN(3).to(opt.device)  # For X domain (no conditional input)
-            Dy = DiscriminatorFunieGAN(3).to(opt.device)  # For Y domain (no conditional input)
+            Dx = UnconditionalDiscriminator(3, opt.nfc).to(opt.device)  # For X domain
+            Dy = UnconditionalDiscriminator(3, opt.nfc).to(opt.device)  # For Y domain
             
             # Print model info using thop
             try:
