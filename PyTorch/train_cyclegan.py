@@ -380,11 +380,13 @@ def train_multiscale_basic_cyclegan(opt):
                     
                     # Forward cycle: X -> Y -> X
                     recovered_X = F(fake_Y)
-                    cycle_loss_X = torch.mean(torch.abs(recovered_X - X))
+                    recovered_X_aligned, X_aligned = functions.align_tensors(recovered_X, X)
+                    cycle_loss_X = torch.mean(torch.abs(recovered_X_aligned - X_aligned))
                     
                     # Backward cycle: Y -> X -> Y
                     recovered_Y = G(fake_X)
-                    cycle_loss_Y = torch.mean(torch.abs(recovered_Y - Y))
+                    recovered_Y_aligned, Y_aligned = functions.align_tensors(recovered_Y, Y)
+                    cycle_loss_Y = torch.mean(torch.abs(recovered_Y_aligned - Y_aligned))
                     
                     loss_cyc = (1/m) * (cycle_loss_X + cycle_loss_Y)
                     
