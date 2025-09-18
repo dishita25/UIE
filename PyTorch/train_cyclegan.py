@@ -131,8 +131,8 @@ def get_config():
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate") 
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
     parser.add_argument("--niter", type=int, default=101, help="Number of iterations")
-    parser.add_argument("--batch_size", type=int, default=4, help="Batch size")
-    parser.add_argument("--val_batch_size", type=int, default=4, help="Validation batch size")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--val_batch_size", type=int, default=32, help="Validation batch size")
     
     # Loss parameters
     parser.add_argument("--lambda_cycle", type=float, default=10.0, help="Cycle consistency loss weight")
@@ -548,6 +548,7 @@ def save_basic_cyclegan_samples(G, F, X_pyramid, Y_pyramid, opt, scale_num, epoc
         
         # Generate translations
         fake_Y = G(X_curr)  # X -> Y (blur -> real)
+        print(f"Shape of fake_Y: {fake_Y.shape}")
         
         # Create comparison: [Blur | Generated | Real]
         comparison = torch.cat([X_curr, fake_Y, Y_curr], dim=0)
