@@ -24,11 +24,18 @@ from torchmetrics import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
 
 # Hard-coded scales
 HARDCODED_SCALES = [
-    (61, 61),
-    (81, 81),
-    (108, 108),
-    (144, 144),
-    (192, 192),
+    # (61, 61),
+    # (81, 81),
+    # (108, 108),
+    # (144, 144),
+    # (192, 192),
+    # (256, 256),
+
+    (64, 64),    
+    (96, 96),    
+    (128, 128),  
+    (160, 160),  
+    (192, 192),  
     (256, 256),
 ]
 
