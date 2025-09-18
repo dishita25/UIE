@@ -52,7 +52,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=201, help="Number of iterations per scale") # Make it 100 or 200
+    parser.add_argument("--niter", type=int, default=1, help="Number of iterations per scale") # Make it 100 or 200
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
