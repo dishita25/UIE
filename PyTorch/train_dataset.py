@@ -18,7 +18,7 @@ from nets.commons import VGG19_PercepLoss, Weights_Normal
 # Hard-coded scales (can be made configurable)
 HARDCODED_SCALES = [
     (64, 64),
-    (96, 96), 
+    (96, 96),
     (128, 128),
     (192, 192),
     (256, 256),
@@ -39,20 +39,20 @@ def get_config():
     parser.add_argument("--num_workers", type=int, default=8, help="Number of workers for data loading")
     parser.add_argument("--max_image_size", type=int, default=256, help="Maximum size for input images")
     
-    # Model parameters  
+    # Model parameters
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters")
     parser.add_argument("--min_nfc_init", type=int, default=32, help="Minimum number of filters")
     parser.add_argument("--ker_size", type=int, default=3, help="Kernel size")
     parser.add_argument("--num_layer", type=int, default=5, help="Number of layers")
     parser.add_argument("--stride", type=int, default=1, help="Stride")
     parser.add_argument("--noise_amp_init", type=float, default=0.1, help="Initial noise amplitude")
-    parser.add_argument("--scale_factor_init", type=float, default=0.75, help="Scale factor for pyramid")
+    parser.add_argument("--scale_factor", type=float, default=0.75, help="Scale factor for pyramid")
     
     # Optimization parameters
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=1, help="Number of iterations per scale") # Make it 100 or 200
+    parser.add_argument("--niter", type=int, default=201, help="Number of iterations per scale")
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
@@ -95,7 +95,6 @@ def get_config():
     
     return args
 
-
 def load_checkpoint_for_resume(opt, checkpoint_path):
     """Load checkpoint and return resume information"""
     print(f"Loading checkpoint from: {checkpoint_path}")
@@ -135,13 +134,248 @@ def clean_state_dict(state_dict):
     print(f"Cleaned state dict: removed {len(state_dict) - len(cleaned_state_dict)} THOP keys")
     return cleaned_state_dict
 
+def draw_concat_dataset(Gs, Zs, poor_batch_pyramid, NoiseAmp, mode, opt):
+    """
+    Draw concatenation following SinGAN architecture for dataset training
+    
+    Args:
+        Gs: List of previously trained generators
+        Zs: List of optimal noise vectors (not used in dataset mode, kept for compatibility)
+        poor_batch_pyramid: List of poor quality images at different scales
+        NoiseAmp: List of noise amplification factors
+        mode: 'rand' for random noise, 'rec' for reconstruction
+        opt: Configuration options
+    
+    Returns:
+        Enhanced image at the current finest scale
+    """
+    if len(Gs) == 0:
+        # First scale: return the input poor image
+        return poor_batch_pyramid[0]
+    
+    # Start from the coarsest scale
+    G_z = poor_batch_pyramid[0]  # Use poor image instead of noise
+    
+    # Progressive enhancement through scales
+    for scale_idx, (G, noise_amp) in enumerate(zip(Gs, NoiseAmp)):
+        # Get the corresponding poor image at this scale
+        current_poor = poor_batch_pyramid[scale_idx]
+        
+        # Generate noise for this scale
+        if mode == 'rand':
+            noise = torch.randn_like(current_poor) * 0.1  # Small noise amplitude
+        else:  # reconstruction mode
+            noise = torch.zeros_like(current_poor)  # No noise for reconstruction
+        
+        # Resize G_z to match current scale if needed
+        if G_z.shape[2:] != current_poor.shape[2:]:
+            G_z = F.interpolate(G_z, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+        
+        # Combine: enhanced from previous scale + noise + current poor image
+        # This follows SinGAN's additive structure but uses blurry image instead of pure noise
+        z_in = G_z + noise_amp * noise + current_poor * 0.5  # Weight the poor image contribution
+        
+        # Generate enhanced image at current scale
+        G_z = G(z_in)
+        
+        # Prepare for next scale (if not the last one)
+        if scale_idx < len(Gs) - 1 and scale_idx + 1 < len(poor_batch_pyramid):
+            next_scale_shape = poor_batch_pyramid[scale_idx + 1].shape[2:]
+            G_z = F.interpolate(G_z, size=next_scale_shape, mode='bilinear', align_corners=False)
+    
+    return G_z
+
+def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, good_batch_pyramid, 
+                              Gs, Zs, NoiseAmp, opt, scale_num, train_loader):
+    """
+    Train a single scale following SinGAN methodology but adapted for dataset training
+    
+    Args:
+        generator: Current scale generator
+        discriminator: Current scale discriminator
+        poor_batch_pyramid: Poor quality images at different scales
+        good_batch_pyramid: Good quality images at different scales
+        Gs: Previously trained generators
+        Zs: Optimal noise vectors (kept for compatibility)
+        NoiseAmp: Noise amplification factors
+        opt: Configuration options
+        scale_num: Current scale number
+        train_loader: DataLoader for training data
+    
+    Returns:
+        Trained generator and discriminator
+    """
+    target_h, target_w = HARDCODED_SCALES[scale_num]
+    
+    # Setup optimizers
+    optimizer_G = optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
+    optimizer_D = optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
+    
+    # Loss functions
+    mse_loss = nn.MSELoss().to(opt.device)
+    l1_loss = nn.L1Loss().to(opt.device)
+    vgg_loss = VGG19_PercepLoss().to(opt.device)
+    
+    # Calculate noise amplitude for current scale
+    opt.noise_amp = opt.noise_amp_init * (0.8 ** scale_num)  # Decrease noise with scale
+    
+    for epoch in range(opt.niter):
+        epoch_g_loss = 0.0
+        epoch_d_loss = 0.0
+        num_batches = 0
+        
+        for batch_idx, (poor_batch, good_batch, filenames) in enumerate(train_loader):
+            poor_batch = poor_batch.to(opt.device)
+            good_batch = good_batch.to(opt.device)
+            batch_size = poor_batch.size(0)
+            
+            # Create pyramids for current batch
+            poor_pyramid = []
+            good_pyramid = []
+            
+            for h, w in HARDCODED_SCALES[:scale_num + 1]:
+                poor_scaled = F.interpolate(poor_batch, size=(h, w), mode='bilinear', align_corners=False)
+                good_scaled = F.interpolate(good_batch, size=(h, w), mode='bilinear', align_corners=False)
+                poor_pyramid.append(poor_scaled)
+                good_pyramid.append(good_scaled)
+            
+            current_poor = poor_pyramid[scale_num]
+            current_good = good_pyramid[scale_num]
+            
+            # =================
+            # Train Discriminator
+            # =================
+            discriminator.zero_grad()
+            
+            # Real images
+            real_pred = discriminator(current_good, current_poor)
+            real_loss = mse_loss(real_pred, torch.ones_like(real_pred))
+            
+            # Fake images - use enhanced image from previous scales + current generator
+            if len(Gs) > 0:
+                # Get input from previous scales
+                prev_enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rand', opt)
+                # Ensure correct size
+                if prev_enhanced.shape[2:] != current_poor.shape[2:]:
+                    prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], 
+                                                mode='bilinear', align_corners=False)
+            else:
+                prev_enhanced = current_poor
+            
+            # Add small amount of noise
+            noise = torch.randn_like(current_poor) * opt.noise_amp
+            z_in = prev_enhanced + noise
+            
+            fake_batch = generator(z_in.detach())
+            fake_pred = discriminator(fake_batch.detach(), current_poor)
+            fake_loss = mse_loss(fake_pred, torch.zeros_like(fake_pred))
+            
+            # Discriminator loss
+            d_loss = 0.5 * (real_loss + fake_loss)
+            
+            # Add gradient penalty if specified
+            if opt.lambda_grad > 0:
+                grad_penalty = functions.calc_gradient_penalty(
+                    discriminator, current_good, fake_batch, opt.lambda_grad, opt.device
+                )
+                d_loss += grad_penalty
+            
+            d_loss.backward()
+            optimizer_D.step()
+            
+            # =================
+            # Train Generator
+            # =================
+            generator.zero_grad()
+            
+            # Generate fake images (same process as above but with gradients)
+            if len(Gs) > 0:
+                prev_enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rand', opt)
+                if prev_enhanced.shape[2:] != current_poor.shape[2:]:
+                    prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+            else:
+                prev_enhanced = current_poor
+            
+            noise = torch.randn_like(current_poor) * opt.noise_amp
+            z_in = prev_enhanced + noise                                    # **********NOTE************: Should I be adding noise?!
+            fake_batch = generator(z_in)
+            
+            # Generator losses
+            fake_pred = discriminator(fake_batch, current_poor)
+            g_adv_loss = mse_loss(fake_pred, torch.ones_like(fake_pred))
+            g_l1_loss = l1_loss(fake_batch, current_good)
+            g_vgg_loss = vgg_loss(fake_batch, current_good)
+            
+            # Reconstruction loss (SinGAN style)
+            if opt.alpha > 0 and len(Gs) > 0:
+                # Reconstruction with fixed input (no noise)
+                z_rec = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rec', opt)
+                if z_rec.shape[2:] != current_poor.shape[2:]:
+                    z_rec = F.interpolate(z_rec, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+                    
+                rec_loss = opt.alpha * l1_loss(generator(z_rec), current_good)
+            else:
+                rec_loss = torch.tensor(0.0).to(opt.device)
+            
+            g_loss = g_adv_loss + opt.lambda_l1 * g_l1_loss + opt.lambda_vgg * g_vgg_loss + rec_loss
+            
+            g_loss.backward()
+            optimizer_G.step()
+            
+            # Accumulate losses
+            epoch_g_loss += g_loss.item()
+            epoch_d_loss += d_loss.item()
+            num_batches += 1
+            
+            # Log progress
+            if batch_idx % 50 == 0:
+                print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
+                      f"G_loss: {g_loss.item():.4f}, D_loss: {d_loss.item():.4f}")
+        
+        # Average losses for epoch
+        avg_g_loss = epoch_g_loss / num_batches
+        avg_d_loss = epoch_d_loss / num_batches
+        print(f"Scale {scale_num}, Epoch {epoch}: Avg G_loss: {avg_g_loss:.4f}, Avg D_loss: {avg_d_loss:.4f}")
+        
+        # Save sample images
+        if epoch % opt.sample_freq == 0:
+            with torch.no_grad():
+                # Take first batch for sampling
+                for poor_sample, good_sample, _ in train_loader:
+                    poor_sample = poor_sample[:4].to(opt.device)
+                    good_sample = good_sample[:4].to(opt.device)
+                    
+                    # Create pyramid for sample
+                    poor_pyramid_sample = []
+                    for h, w in HARDCODED_SCALES[:scale_num + 1]:
+                        poor_scaled = F.interpolate(poor_sample, size=(h, w), mode='bilinear', align_corners=False)
+                        poor_pyramid_sample.append(poor_scaled)
+                    
+                    # Generate enhanced sample
+                    if len(Gs) > 0:
+                        enhanced_input = draw_concat_dataset(Gs, Zs, poor_pyramid_sample, NoiseAmp, 'rec', opt)
+                        if enhanced_input.shape[2:] != poor_pyramid_sample[scale_num].shape[2:]:
+                            enhanced_input = F.interpolate(enhanced_input, size=poor_pyramid_sample[scale_num].shape[2:], 
+                                                          mode='bilinear', align_corners=False)
+                    else:
+                        enhanced_input = poor_pyramid_sample[scale_num]
+                    
+                    fake_sample = generator(enhanced_input)
+                    good_sample_scaled = F.interpolate(good_sample, size=(target_h, target_w), mode='bilinear', align_corners=False)
+                    
+                    # Save comparison
+                    comparison = torch.cat([poor_pyramid_sample[scale_num], fake_sample, good_sample_scaled], dim=0)
+                    save_image(comparison, f"{opt.outf}/samples_epoch_{epoch}.png", nrow=4, normalize=True)
+                    break
+    
+    return generator, optimizer_G, optimizer_D
 
 def train_multiscale_dataset(opt):
-    """Train FunieGAN on dataset using multi-scale approach"""
+    """Train FunieGAN on dataset using SinGAN-style multi-scale approach"""
     print(f"Training on device: {opt.device}")
     print(f"Poor quality images: {opt.poor_data_dir}")
     print(f"Good quality images: {opt.good_data_dir}")
-
+    
     # Create data loaders
     train_loader = functions.create_data_loader(
         opt.poor_data_dir,
@@ -150,7 +384,7 @@ def train_multiscale_dataset(opt):
         shuffle=True,
         max_size=opt.max_image_size
     )
-
+    
     val_loader = None
     if opt.val_poor_data_dir and opt.val_good_data_dir:
         val_loader = functions.create_data_loader(
@@ -160,20 +394,20 @@ def train_multiscale_dataset(opt):
             shuffle=False,
             max_size=opt.max_image_size
         )
-
+    
     print(f"Training samples: {len(train_loader.dataset)}")
     if val_loader:
         print(f"Validation samples: {len(val_loader.dataset)}")
-
-    # Storage for trained models
+    
+    # Storage for trained models (SinGAN style)
     Gs, Zs, NoiseAmp = [], [], []
-
+    
     # Handle resume training
     resume_info = None
     start_scale = 0
     
     if opt.resume:
-    
+        
         resume_info = load_checkpoint_for_resume(opt, opt.resume_path)
         if resume_info is None:
             print("Failed to load checkpoint. Starting fresh training.")
@@ -184,12 +418,10 @@ def train_multiscale_dataset(opt):
             # Load previously trained generators for earlier scales
             print("Loading previously trained generators...")
             for prev_scale in range(start_scale):
-                
                 # Try to find the latest checkpoint for each previous scale
                 prev_scale_dir = os.path.join(opt.resume_out, opt.dataset_name, f"scale_{prev_scale}")
                 
                 if os.path.exists(prev_scale_dir):
-                    
                     # Find the latest checkpoint in this scale
                     checkpoints = [f for f in os.listdir(prev_scale_dir) if f.startswith("checkpoint_epoch_") and f.endswith(".pth")]
                     
@@ -205,33 +437,30 @@ def train_multiscale_dataset(opt):
                         prev_generator.eval()
                         Gs.append(prev_generator)
                         
-                        # Add corresponding Z and NoiseAmp
+                        # Add corresponding Z and NoiseAmp (kept for compatibility)
                         target_h, target_w = HARDCODED_SCALES[prev_scale]
                         z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
                         Zs.append(z_opt)
-                        NoiseAmp.append(opt.noise_amp_init)
+                        NoiseAmp.append(opt.noise_amp_init * (0.8 ** prev_scale))
                         
                         print(f"Loaded generator for scale {prev_scale}")
-
+    
     # Train at each scale (starting from resume point or beginning)
     for scale_num in range(start_scale, len(HARDCODED_SCALES)):
         print(f"\n=== Training Scale {scale_num} ({HARDCODED_SCALES[scale_num]}) ===")
-
-        # Adjust network complexity based on scale
+        
+        # Adjust network complexity based on scale (SinGAN style)
         opt.nfc = min(opt.nfc_init * pow(2, math.floor(scale_num / 4)), 128)
         opt.min_nfc = min(opt.min_nfc_init * pow(2, math.floor(scale_num / 4)), 128)
-
+        
         # Create output directory
         opt.outf = os.path.join(opt.out, opt.dataset_name, f"scale_{scale_num}")
         os.makedirs(opt.outf, exist_ok=True)
-
+        
         # Initialize networks
         generator = GeneratorFunieGAN(3, 3).to(opt.device)
         discriminator = DiscriminatorFunieGAN(3).to(opt.device)
-
-        # Training loop for this scale
-        target_h, target_w = HARDCODED_SCALES[scale_num]
-
+        
         # Load from checkpoint if resuming this specific scale
         start_epoch = 0
         if opt.resume and scale_num == resume_info['resume_scale']:
@@ -243,159 +472,41 @@ def train_multiscale_dataset(opt):
             # Apply weight initialization for fresh networks
             generator.apply(Weights_Normal)
             discriminator.apply(Weights_Normal)
-
-        # Count parameters (only for fresh scales or first time)
-        if not opt.resume or scale_num != resume_info['resume_scale']:
-            print("\nModel Summary:")
-            from torchinfo import summary
-            summary(generator, input_size=(1, 3, target_h, target_w), col_names=["input_size", "output_size", "num_params", "mult_adds"])
-
-            from thop import profile, clever_format
-            gen_input = torch.randn(1, 3, target_h, target_w).to(opt.device)
-            disc_input_A = torch.randn(1, 3, target_h, target_w).to(opt.device)
-            disc_input_B = torch.randn(1, 3, target_h, target_w).to(opt.device)
-            gen_macs, gen_params = profile(generator, inputs=(gen_input,), verbose=False)
-            disc_macs, disc_params = profile(discriminator, inputs=(disc_input_A, disc_input_B), verbose=False)
-            print(f"Generator: {gen_params:,} params, {gen_macs*2/1e9:.2f} GFLOPs")
-            print(f"Discriminator: {disc_params:,} params, {disc_macs*2/1e9:.2f} GFLOPs")
-
-        # Optimizers
-        optimizer_G = optim.Adam(generator.parameters(), lr=opt.lr_g, betas=(opt.beta1, 0.999))
-        optimizer_D = optim.Adam(discriminator.parameters(), lr=opt.lr_d, betas=(opt.beta1, 0.999))
-
-        # Load optimizer states if resuming
-        if opt.resume and scale_num == resume_info['resume_scale']:
-            optimizer_G.load_state_dict(resume_info['optimizer_G_state'])
-            optimizer_D.load_state_dict(resume_info['optimizer_D_state'])
-            print("Loaded optimizer states")
-            # Clear resume flag after first use
-            opt.resume = False
-
-        # Loss functions
-        mse_loss = nn.MSELoss().to(opt.device)
-        l1_loss = nn.L1Loss().to(opt.device)
-        vgg_loss = VGG19_PercepLoss().to(opt.device)
-
-        # Training loop - start from resume epoch or 0
-        for epoch in range(start_epoch, opt.niter):
-            epoch_g_loss = 0.0
-            epoch_d_loss = 0.0
-            num_batches = 0
-
-            for batch_idx, (poor_batch, good_batch, filenames) in enumerate(train_loader):
-                # Move to device
-                poor_batch = poor_batch.to(opt.device)
-                good_batch = good_batch.to(opt.device)
-
-                # Resize to current scale
-                poor_batch_scaled = F.interpolate(poor_batch, size=(target_h, target_w), mode='bilinear', align_corners=False)
-                good_batch_scaled = F.interpolate(good_batch, size=(target_h, target_w), mode='bilinear', align_corners=False)
-                batch_size = poor_batch_scaled.size(0)
-
-                # Train Discriminator
-                discriminator.zero_grad()
-
-                # Real images
-                real_pred = discriminator(good_batch_scaled, poor_batch_scaled)
-                real_loss = mse_loss(real_pred, torch.ones_like(real_pred))
-
-                # Fake images
-                with torch.no_grad():
-                    fake_batch = generator(poor_batch_scaled)
-                fake_pred = discriminator(fake_batch.detach(), poor_batch_scaled)
-                fake_loss = mse_loss(fake_pred, torch.zeros_like(fake_pred))
-
-                # Discriminator loss
-                d_loss = 0.5 * (real_loss + fake_loss)
-
-                # Add gradient penalty if specified
-                if opt.lambda_grad > 0:
-                    grad_penalty = functions.calc_gradient_penalty(
-                        discriminator, good_batch_scaled, fake_batch, opt.lambda_grad, opt.device
-                    )
-                    d_loss += grad_penalty
-
-                d_loss.backward()
-                optimizer_D.step()
-
-                # Train Generator
-                generator.zero_grad()
-
-                # Generate fake images
-                fake_batch = generator(poor_batch_scaled)
-                fake_pred = discriminator(fake_batch, poor_batch_scaled)
-
-                # Generator losses
-                g_adv_loss = mse_loss(fake_pred, torch.ones_like(fake_pred))
-                g_l1_loss = l1_loss(fake_batch, good_batch_scaled)
-                g_vgg_loss = vgg_loss(fake_batch, good_batch_scaled)
-                g_loss = g_adv_loss + opt.lambda_l1 * g_l1_loss + opt.lambda_vgg * g_vgg_loss
-
-                g_loss.backward()
-                optimizer_G.step()
-
-                # Accumulate losses
-                epoch_g_loss += g_loss.item()
-                epoch_d_loss += d_loss.item()
-                num_batches += 1
-
-                # Log progress
-                if batch_idx % 50 == 0:
-                    print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
-                          f"G_loss: {g_loss.item():.4f}, D_loss: {d_loss.item():.4f}")
-
-            # Average losses for epoch
-            avg_g_loss = epoch_g_loss / num_batches
-            avg_d_loss = epoch_d_loss / num_batches
-            print(f"Scale {scale_num}, Epoch {epoch}: Avg G_loss: {avg_g_loss:.4f}, Avg D_loss: {avg_d_loss:.4f}")
-
-            # Validation
-            if val_loader and epoch % opt.val_freq == 0:
-                val_g_loss, val_d_loss = functions.validate_model(
-                    generator, discriminator, val_loader, mse_loss, opt.device, scale_num
-                )
-                print(f"Validation - G_loss: {val_g_loss:.4f}, D_loss: {val_d_loss:.4f}")
-
-            # Save sample images
-            if epoch % opt.sample_freq == 0:
-                with torch.no_grad():
-                    # Take first batch for sampling
-                    for poor_sample, good_sample, _ in train_loader:
-                        poor_sample = poor_sample[:4].to(opt.device)
-                        good_sample = good_sample[:4].to(opt.device)
-
-                        # Resize and generate
-                        poor_sample = F.interpolate(poor_sample, size=(target_h, target_w), mode='bilinear', align_corners=False)
-                        good_sample = F.interpolate(good_sample, size=(target_h, target_w), mode='bilinear', align_corners=False)
-                        fake_sample = generator(poor_sample)
-
-                        # Save comparison
-                        comparison = torch.cat([poor_sample, fake_sample, good_sample], dim=0)
-                        save_image(comparison, f"{opt.outf}/samples_epoch_{epoch}.png", nrow=4, normalize=True)
-                        break
-
-            # Save models
-            if epoch % opt.save_freq == 0 or epoch == opt.niter - 1:
-                torch.save({
-                    'generator': generator.state_dict(),
-                    'discriminator': discriminator.state_dict(),
-                    'optimizer_G': optimizer_G.state_dict(),
-                    'optimizer_D': optimizer_D.state_dict(),
-                    'epoch': epoch,
-                    'scale': scale_num
-                }, f"{opt.outf}/checkpoint_epoch_{epoch}.pth")
-
-        # Store trained models
+        
+        # Train this scale
+        generator, optimizer_G, optimizer_D = train_single_scale_dataset(
+            generator, discriminator, None, None, Gs, Zs, NoiseAmp, 
+            opt, scale_num, train_loader
+        )
+        
+        # Set models to evaluation mode (SinGAN style)
         generator.eval()
+        discriminator.eval()
+        
+        # Store trained models
         Gs.append(generator)
-
-        # Store noise parameters (simplified for dataset training)
+        
+        # Store noise parameters
+        target_h, target_w = HARDCODED_SCALES[scale_num]
         z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
         Zs.append(z_opt)
-        NoiseAmp.append(opt.noise_amp_init)
-
+        NoiseAmp.append(opt.noise_amp_init * (0.8 ** scale_num))
+        
+        # Save checkpoint for this scale
+        torch.save({
+            'generator': generator.state_dict(),
+            'discriminator': discriminator.state_dict(),
+            'optimizer_G': optimizer_G.state_dict(),
+            'optimizer_D': optimizer_D.state_dict(),
+            'epoch': opt.niter - 1,
+            'scale': scale_num,
+            'Gs': [G.state_dict() for G in Gs],
+            'Zs': Zs,
+            'NoiseAmp': NoiseAmp,
+        }, f"{opt.outf}/checkpoint_final.pth")
+        
         print(f"Scale {scale_num} completed!")
-
+    
     # Save final models
     final_model_path = os.path.join(opt.out, opt.dataset_name, "final_model.pth")
     torch.save({
@@ -404,7 +515,7 @@ def train_multiscale_dataset(opt):
         'NoiseAmp': NoiseAmp,
         'scales': HARDCODED_SCALES,
     }, final_model_path)
-
+    
     print(f"Training completed! Final model saved to {final_model_path}")
     return Gs, Zs, NoiseAmp
 
@@ -432,9 +543,11 @@ def test_model(opt, model_path):
         G.eval()
         Gs.append(G)
     
+    Zs = checkpoint['Zs']
+    NoiseAmp = checkpoint['NoiseAmp']
     scales = checkpoint['scales']
     
-    # Test on a few samples
+    # Test on samples
     output_dir = os.path.join(opt.out, opt.dataset_name, "test_results")
     os.makedirs(output_dir, exist_ok=True)
     
@@ -442,17 +555,21 @@ def test_model(opt, model_path):
         for i, (poor_batch, good_batch, filenames) in enumerate(test_loader):
             if i >= 10:  # Test only first 10 samples
                 break
-                
+            
             poor_batch = poor_batch.to(opt.device)
             good_batch = good_batch.to(opt.device)
             
-            # Process through all scales (use last generator for final result)
-            enhanced = poor_batch
-            for scale_idx, G in enumerate(Gs):
-                if scale_idx < len(scales):
-                    target_h, target_w = scales[scale_idx]
-                    enhanced = F.interpolate(enhanced, size=(target_h, target_w), mode='bilinear', align_corners=False)
-                    enhanced = G(enhanced)
+            # Create pyramid for the poor image
+            poor_pyramid = []
+            for h, w in scales:
+                poor_scaled = F.interpolate(poor_batch, size=(h, w), mode='bilinear', align_corners=False)
+                poor_pyramid.append(poor_scaled)
+            
+            # Generate enhanced image using SinGAN-style multi-scale approach
+            enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rec', opt)
+            
+            # Resize to original size for comparison
+            enhanced = F.interpolate(enhanced, size=poor_batch.shape[2:], mode='bilinear', align_corners=False)
             
             # Save results
             filename = filenames[0].split('.')[0]
@@ -481,7 +598,7 @@ def main():
         if opt.val_poor_data_dir and opt.val_good_data_dir:
             model_path = os.path.join(opt.out, opt.dataset_name, "final_model.pth")
             test_model(opt, model_path)
-            
+
     elif opt.mode == 'test':
         model_path = os.path.join(opt.out, opt.dataset_name, "final_model.pth")
         if os.path.exists(model_path):
@@ -489,6 +606,7 @@ def main():
         else:
             print(f"No trained model found at {model_path}")
             print("Please train the model first with --mode train")
+    
     else:
         print(f"Unknown mode: {opt.mode}")
         print("Available modes: train, test")
