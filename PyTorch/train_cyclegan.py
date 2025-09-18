@@ -252,6 +252,10 @@ def train_multiscale_basic_cyclegan(opt):
             Y_batch = Y_batch.to(opt.device)
     
             X_pyramid = functions.creat_pyramid_from_hardcoded_scales(X_batch, HARDCODED_SCALES)
+            print("Pyramid shapes:")
+            for i, scale in enumerate(HARDCODED_SCALES):
+                print(f"  Scale {i} {scale}: {X_pyramid[i].shape}")
+
             Y_pyramid = functions.creat_pyramid_from_hardcoded_scales(Y_batch, HARDCODED_SCALES)
     
             print(f"Original batch shapes - X: {X_batch.shape}, Y: {Y_batch.shape}")
