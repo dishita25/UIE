@@ -209,6 +209,16 @@ def train_multiscale_basic_cyclegan(opt):
             shuffle=True,
             max_size=opt.max_image_size
         )
+        print(f"Training samples: {len(train_loader.dataset)}")
+        print(f"Batch size: {opt.batch_size}")
+
+
+        sample_batch = next(iter(train_loader))
+        X_sample, Y_sample, _ = sample_batch
+        print(f"Sample batch - X shape: {X_sample.shape}, Y shape: {Y_sample.shape}")
+        print(f"X dtype: {X_sample.dtype}, Y dtype: {Y_sample.dtype}")
+        print(f"X value range: [{X_sample.min():.3f}, {X_sample.max():.3f}]")
+        print(f"Y value range: [{Y_sample.min():.3f}, {Y_sample.max():.3f}]")
         
         # Validation data loader
         val_loader = None
@@ -235,6 +245,18 @@ def train_multiscale_basic_cyclegan(opt):
         for scale_num in range(len(HARDCODED_SCALES)):
             target_h, target_w = HARDCODED_SCALES[scale_num]
             print(f"\n=== Training Scale {scale_num} ({target_h}x{target_w}) ===")
+
+            first_batch = next(iter(train_loader))
+            X_batch, Y_batch, _ = first_batch
+            X_batch = X_batch.to(opt.device)
+            Y_batch = Y_batch.to(opt.device)
+    
+            X_pyramid = functions.creat_pyramid_from_hardcoded_scales(X_batch, HARDCODED_SCALES)
+            Y_pyramid = functions.creat_pyramid_from_hardcoded_scales(Y_batch, HARDCODED_SCALES)
+    
+            print(f"Original batch shapes - X: {X_batch.shape}, Y: {Y_batch.shape}")
+            print(f"Pyramid level {scale_num} shapes - X: {X_pyramid[scale_num].shape}, Y: {Y_pyramid[scale_num].shape}")
+            print(f"All pyramid shapes for X: {[x.shape for x in X_pyramid[:scale_num+1]]}")
             
             # Adjust network complexity
             opt.nfc = min(opt.nfc_init * pow(2, math.floor(scale_num / 4)), 128)
@@ -297,6 +319,9 @@ def train_multiscale_basic_cyclegan(opt):
                 num_batches = 0
                 
                 for batch_idx, (X_batch, Y_batch, filenames) in enumerate(train_loader):
+                    if batch_idx == 0:  # Print only for first batch of each epoch
+                        print(f"\nScale {scale_num}, Epoch {epoch}, First batch:")
+                        print(f"Input batch shapes - X: {X_batch.shape}, Y: {Y_batch.shape}")
                     global_step += 1
                     
                     X_batch = X_batch.to(opt.device)  # Domain X (blur images)
