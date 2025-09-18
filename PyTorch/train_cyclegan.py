@@ -137,7 +137,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate") 
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=10, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=100, help="Number of iterations")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--val_batch_size", type=int, default=32, help="Validation batch size")
     
