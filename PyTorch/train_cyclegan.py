@@ -137,7 +137,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate") 
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=100, help="Number of iterations")
+    parser.add_argument("--niter", type=int, default=10, help="Number of iterations")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--val_batch_size", type=int, default=32, help="Validation batch size")
     
@@ -153,7 +153,7 @@ def get_config():
     parser.add_argument("--wandb_project", type=str, default="cyclegan-underwater", help="Wandb project name")
     parser.add_argument("--wandb_run_name", type=str, default="cyclegan-multiscale", help="Wandb run name")
     parser.add_argument("--log_freq", type=int, default=10, help="Log frequency")
-    parser.add_argument("--val_freq", type=int, default=100, help="Validation frequency")
+    parser.add_argument("--val_freq", type=int, default=10, help="Validation frequency")
     parser.add_argument("--sample_freq", type=int, default=500, help="Sample frequency")
     parser.add_argument("--save_freq", type=int, default=500, help="Save frequency")
     parser.add_argument("--max_image_size", type=int, default=256, help="Maximum image size")
