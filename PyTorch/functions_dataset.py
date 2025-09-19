@@ -199,10 +199,83 @@ def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device):
 
 # NEW: Modified functions for batch processing
 def create_data_loader(poor_dir, good_dir, batch_size=4, shuffle=True, max_size=256):
-    """Create DataLoader for paired underwater images"""
-    dataset = UnderwaterPairedDataset(poor_dir, good_dir, max_size=max_size)
+    """Create DataLoader for unpaired underwater images"""
+    dataset = UnderwaterUnpairedDataset(poor_dir, good_dir, max_size=max_size)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
     return dataloader
+
+class UnderwaterUnpairedDataset(Dataset):
+    def __init__(self, poor_dir, good_dir, max_size=256):
+        """
+        Dataset for unpaired underwater images
+        Args:
+            poor_dir: Directory containing poor quality images (Domain A)
+            good_dir: Directory containing good quality images (Domain B)
+            max_size: Maximum image size for resizing
+        """
+        self.poor_dir = poor_dir
+        self.good_dir = good_dir
+        self.max_size = max_size
+        
+        # Get all image files from both directories
+        self.poor_images = [f for f in os.listdir(poor_dir) 
+                           if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+        self.good_images = [f for f in os.listdir(good_dir) 
+                           if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+        
+        # Sort for consistency
+        self.poor_images.sort()
+        self.good_images.sort()
+        
+        self.len_poor = len(self.poor_images)
+        self.len_good = len(self.good_images)
+        
+        if self.len_poor == 0:
+            raise ValueError(f"No images found in poor directory: {poor_dir}")
+        if self.len_good == 0:
+            raise ValueError(f"No images found in good directory: {good_dir}")
+        
+        print(f"Found {self.len_poor} poor images and {self.len_good} good images")
+        
+        # Transform for preprocessing
+        self.transform = transforms.Compose([
+            transforms.Resize((max_size, max_size)),
+            transforms.ToTensor(),
+        ])
+    
+    def __len__(self):
+        # Return the maximum of the two domain sizes
+        return max(self.len_poor, self.len_good)
+    
+    def __getitem__(self, idx):
+        # Get poor image (Domain A) - cycle through if needed
+        poor_idx = idx % self.len_poor
+        poor_path = os.path.join(self.poor_dir, self.poor_images[poor_idx])
+        
+        # Get good image (Domain B) - randomly sample for unpaired training
+        good_idx = torch.randint(0, self.len_good, (1,)).item()
+        good_path = os.path.join(self.good_dir, self.good_images[good_idx])
+        
+        # Load and preprocess images
+        try:
+            poor_image = Image.open(poor_path).convert('RGB')
+            good_image = Image.open(good_path).convert('RGB')
+            
+            poor_tensor = self.transform(poor_image)
+            good_tensor = self.transform(good_image)
+            
+            # Return images and filenames
+            filename = f"{self.poor_images[poor_idx]}__{self.good_images[good_idx]}"
+            
+            return poor_tensor, good_tensor, filename
+            
+        except Exception as e:
+            print(f"Error loading images {poor_path} or {good_path}: {e}")
+            # Return a default or skip this sample
+            poor_tensor = torch.zeros(3, self.max_size, self.max_size)
+            good_tensor = torch.zeros(3, self.max_size, self.max_size)
+            return poor_tensor, good_tensor, f"error_{idx}"
+
 
 def torch2uint8(x):
     x = x[0,:,:,:]
