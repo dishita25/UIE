@@ -1014,31 +1014,25 @@ def save_basic_cyclegan_samples(G, F, X_pyramid, Y_pyramid, opt, scale_num, epoc
         
         # Log to WandB
         if not opt.disable_wandb:
+            from torchvision.utils import make_grid
+            
             # Create individual grids for better visualization
-            blur_grid = torch.cat([X_curr], dim=0)
-            enhanced_grid = torch.cat([fake_Y], dim=0)  
-            real_grid = torch.cat([Y_curr], dim=0)
-            degraded_grid = torch.cat([fake_X], dim=0)
+            blur_grid = make_grid(X_curr, nrow=2, normalize=True)
+            enhanced_grid = make_grid(fake_Y, nrow=2, normalize=True)
+            real_grid = make_grid(Y_curr, nrow=2, normalize=True)
+            degraded_grid = make_grid(fake_X, nrow=2, normalize=True)
+            comparison_grid = make_grid(comparison, nrow=4, normalize=True)
             
             wandb.log({
-                f"scale_{scale_num}_epoch_{epoch}_blur_input": wandb.Image(
-                    save_image(blur_grid, None, nrow=2, normalize=True, return_tensor=True)
-                ),
-                f"scale_{scale_num}_epoch_{epoch}_enhanced_output": wandb.Image(
-                    save_image(enhanced_grid, None, nrow=2, normalize=True, return_tensor=True)
-                ),
-                f"scale_{scale_num}_epoch_{epoch}_real_target": wandb.Image(
-                    save_image(real_grid, None, nrow=2, normalize=True, return_tensor=True)
-                ),
-                f"scale_{scale_num}_epoch_{epoch}_degraded_output": wandb.Image(
-                    save_image(degraded_grid, None, nrow=2, normalize=True, return_tensor=True)
-                ),
-                f"scale_{scale_num}_epoch_{epoch}_comparison": wandb.Image(
-                    save_image(comparison, None, nrow=4, normalize=True, return_tensor=True)
-                ),
+                f"scale_{scale_num}_epoch_{epoch}_blur_input": wandb.Image(blur_grid),
+                f"scale_{scale_num}_epoch_{epoch}_enhanced_output": wandb.Image(enhanced_grid),
+                f"scale_{scale_num}_epoch_{epoch}_real_target": wandb.Image(real_grid),
+                f"scale_{scale_num}_epoch_{epoch}_degraded_output": wandb.Image(degraded_grid),
+                f"scale_{scale_num}_epoch_{epoch}_comparison": wandb.Image(comparison_grid),
                 "scale": scale_num,
                 "epoch": epoch,
             })
+
 
 
 def main():
