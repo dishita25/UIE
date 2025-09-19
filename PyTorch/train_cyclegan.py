@@ -18,6 +18,7 @@ import glob
 import random 
 import wandb
 import numpy as np
+from torchvision.utils import make_grid
 
 # For SSIM and PSNR calculation using PyTorch
 from torchmetrics import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
@@ -1014,8 +1015,6 @@ def save_basic_cyclegan_samples(G, F, X_pyramid, Y_pyramid, opt, scale_num, epoc
         
         # Log to WandB
         if not opt.disable_wandb:
-            from torchvision.utils import make_grid
-            
             # Create individual grids for better visualization
             blur_grid = make_grid(X_curr, nrow=2, normalize=True)
             enhanced_grid = make_grid(fake_Y, nrow=2, normalize=True)
