@@ -122,10 +122,10 @@ def get_config():
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
     
     # Dataset paths
-    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA", help="Directory containing blurry input images")
-    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Directory containing ground truth images")
-    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/valA", help="Validation blurry images")
-    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/valB", help="Validation ground truth images")
+    parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Unpaired/trainA", help="Directory containing blurry input images")
+    parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Unpaired/trainB", help="Directory containing ground truth images")
+    parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/Inp", help="Validation blurry images")
+    parser.add_argument("--val_good_data_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr", help="Validation ground truth images")
     
     # Model parameters
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
