@@ -566,7 +566,7 @@ def test_model(opt, model_path):
         G.eval()
         Gs.append(G)
     
-    Zs = checkpoint['Zs']
+    # Zs = checkpoint['Zs']
     # NoiseAmp = checkpoint['NoiseAmp']
     scales = checkpoint['scales']
     
