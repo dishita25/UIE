@@ -368,8 +368,13 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     fake_sample = generator(enhanced_input)
                     good_sample_scaled = F.interpolate(good_sample, size=(target_h, target_w), mode='bilinear', align_corners=False)
                     
-                    # Log image to wandb
-                    wandb.log({"generated_sample": [wandb.Image(fake_sample, caption=f"Epoch {epoch}")]})
+                    # fake_sample shape: (B, C, H, W)
+                    wandb.log({
+                        "generated_samples": [
+                            wandb.Image(img, caption=f"Epoch {epoch} | Img {i}")
+                            for i, img in enumerate(fake_sample)
+                        ]
+                    })
                     
                     # Save comparison
                     comparison = torch.cat([poor_pyramid_sample[scale_num], fake_sample, good_sample_scaled], dim=0)
