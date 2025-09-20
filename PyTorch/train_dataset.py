@@ -53,7 +53,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=1, help="Number of iterations per scale") # Change this
+    parser.add_argument("--niter", type=int, default=51, help="Number of iterations per scale") # Change this
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
@@ -155,14 +155,13 @@ def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
     
     # Use poor image as starting point
     G_z = poor_batch_pyramid[0]
+    gen = Gs[0]
+    G_z = gen(G_z)  #Output of generator 0
     
 
     for scale_idx, G in enumerate(Gs):
         # Get the poor image at this scale
         current_poor = poor_batch_pyramid[scale_idx]
-        
-        # G_prev = Gs[scale_idx-1]
-        # G_z = G_prev(G_z)
         
         # Resize G_z to match current scale if needed
         if G_z.shape[2:] != current_poor.shape[2:]:
@@ -175,9 +174,9 @@ def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
         G_z = G(z_in)
         
         # Prepare for next scale (if not the last one)
-        if scale_idx < len(Gs) - 1 and scale_idx + 1 < len(poor_batch_pyramid):
-            next_scale_shape = poor_batch_pyramid[scale_idx + 1].shape[2:]
-            G_z = F.interpolate(G_z, size=next_scale_shape, mode='bilinear', align_corners=False)
+        # if scale_idx < len(Gs) - 1 and scale_idx + 1 < len(poor_batch_pyramid):
+        #     next_scale_shape = poor_batch_pyramid[scale_idx + 1].shape[2:]
+        #     G_z = F.interpolate(G_z, size=next_scale_shape, mode='bilinear', align_corners=False)
     
     return G_z
 
@@ -252,12 +251,15 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], 
                                                 mode='bilinear', align_corners=False)
+                z_in = prev_enhanced + current_poor
             else:
-                prev_enhanced = current_poor
+                z_in = current_poor
+            
+            # *************Look here*****************
             
             # Add small amount of noise
             # noise = torch.randn_like(current_poor) * opt.noise_amp
-            z_in = prev_enhanced #+ noise
+            # z_in = prev_enhanced + noise
             
             fake_batch = generator(z_in.detach())
             fake_pred = discriminator(fake_batch.detach(), current_poor)
@@ -286,11 +288,15 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 prev_enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+                z_in = prev_enhanced + current_poor
             else:
-                prev_enhanced = current_poor
+                z_in = current_poor
+            
+            # *************Look here*****************
             
             # noise = torch.randn_like(current_poor) * opt.noise_amp
-            z_in = prev_enhanced #+ noise
+            # z_in = prev_enhanced + noise
+            
             fake_batch = generator(z_in)
             
             # Generator losses
@@ -305,10 +311,13 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 z_rec = draw_concat_dataset(Gs, poor_pyramid, opt)
                 if z_rec.shape[2:] != current_poor.shape[2:]:
                     z_rec = F.interpolate(z_rec, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
-                    
-                rec_loss = opt.alpha * l1_loss(generator(z_rec), current_good)
+                
+                rec_input = z_rec + current_poor    
+                rec_loss = opt.alpha * l1_loss(generator(rec_input), current_good)
             else:
                 rec_loss = torch.tensor(0.0).to(opt.device)
+                
+            # *************Look here*****************
             
             g_loss = g_adv_loss + opt.lambda_l1 * g_l1_loss + opt.lambda_vgg * g_vgg_loss + rec_loss
             
@@ -592,7 +601,8 @@ def test_model(opt, model_path):
             enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
             
             # Resize to original size for comparison
-            enhanced = F.interpolate(enhanced, size=poor_batch.shape[2:], mode='bilinear', align_corners=False)
+            if enhanced.shape[2:] != poor_batch.shape[2:]:
+                enhanced = F.interpolate(enhanced, size=poor_batch.shape[2:], mode='bilinear', align_corners=False)
             
             # Save results
             filename = filenames[0].split('.')[0]

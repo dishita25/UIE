@@ -26,6 +26,63 @@ def clean_state_dict(state_dict):
             cleaned_state_dict[key] = value
     return cleaned_state_dict
 
+def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
+    """
+    Draw concatenation following SinGAN architecture for dataset training
+    Same as training but for testing/inference
+    
+    Args:
+        Gs: List of previously trained generators
+        poor_batch_pyramid: List of poor quality images at different scales
+        opt: Configuration options
+    
+    Returns:
+        Enhanced image at the current finest scale
+    """
+    if len(Gs) == 0:
+        # First scale: return the input poor image
+        return poor_batch_pyramid[0]
+    
+    # Start from the coarsest scale using the first generator
+    G_z = poor_batch_pyramid[0]  # Use poor image as starting point
+    gen = Gs[0]
+    G_z = gen(G_z)  # Output of generator 0
+    
+    # Progressive enhancement through remaining scales
+    for scale_idx, G in enumerate(Gs[1:], 1):  # Start from index 1
+        # Get the poor image at this scale
+        current_poor = poor_batch_pyramid[scale_idx]
+        
+        # Resize G_z to match current scale if needed
+        if G_z.shape[2:] != current_poor.shape[2:]:
+            G_z = F.interpolate(G_z, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+        
+        # Combine: enhanced from previous scale + current poor image
+        z_in = G_z + current_poor
+        
+        # Generate enhanced image at current scale
+        G_z = G(z_in)
+    
+    return G_z
+
+def create_pyramid(image, scales, device):
+    """
+    Create multi-scale pyramid from input image
+    
+    Args:
+        image: Input tensor of shape (B, C, H, W)
+        scales: List of (height, width) tuples for different scales
+        device: Device to create tensors on
+    
+    Returns:
+        List of tensors at different scales
+    """
+    pyramid = []
+    for h, w in scales:
+        scaled_img = F.interpolate(image, size=(h, w), mode='bilinear', align_corners=False)
+        pyramid.append(scaled_img)
+    return pyramid
+
 ## options
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
@@ -47,7 +104,6 @@ Tensor = torch.cuda.FloatTensor if is_cuda else torch.FloatTensor
 
 ## Load multi-scale generators
 print("Loading multi-scale FunieGAN generators...")
-
 checkpoint = torch.load(opt.model_path, map_location=device, weights_only=False)
 
 # Load all generators from different scales
@@ -90,21 +146,14 @@ for path in test_files:
     # Multi-scale enhancement process
     s = time.time()
     with torch.no_grad():
-        enhanced = inp_img
+        # Create multi-scale pyramid of the input (poor) image
+        poor_pyramid = create_pyramid(inp_img, scales, device)
         
-        # Pass through each generator at its corresponding scale
-        for scale_idx, generator in enumerate(generators):
-            if scale_idx < len(scales):
-                target_h, target_w = scales[scale_idx]
-                
-                # Resize to current scale
-                enhanced = F.interpolate(enhanced, size=(target_h, target_w), 
-                                       mode='bilinear', align_corners=False)
-                
-                # Pass through generator
-                enhanced = generator(enhanced)
-                
-                print(f"  Processed through scale {scale_idx}: {target_h}x{target_w}")
+        enhanced = draw_concat_dataset(generators, poor_pyramid, opt)
+        
+        if enhanced.shape[2:] != (256, 256):
+            enhanced = F.interpolate(enhanced, size=(256, 256), 
+                                   mode='bilinear', align_corners=False)
         
         # Final enhanced image
         gen_img = enhanced
