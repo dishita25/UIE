@@ -26,8 +26,8 @@ def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/train_underwater.yaml", help="Path to config file")
     # Path for the ground truth (real) image
-    parser.add_argument("--input_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainB", help="Input directory")
-    parser.add_argument("--input_name", type=str, default="264286_00007889.jpg", help="Input image name")
+    parser.add_argument("--input_dir", type=str, default="/kaggle/input/waterloo/WaterlooED/WaterlooED_noisy_0", help="Input directory")
+    parser.add_argument("--input_name", type=str, default="00001.bmp", help="Input image name")
     parser.add_argument("--nfc_init", type=int, default=64, help="Initial number of filters in conv layers")
     parser.add_argument("--min_nfc_init", type=int, default=32, help="Minimum number of filters")
     parser.add_argument("--ker_size", type=int, default=3, help="Kernel size")
@@ -50,7 +50,7 @@ def get_config():
     parser.add_argument("--mode", type=str, default="train", help="Mode: train or random_samples")
     parser.add_argument('--alpha',type=float, help='reconstruction loss weight',default=10)
     # Path for the distorted (blur) image
-    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/euvp-dataset/EUVP/Paired/underwater_dark/trainA/264286_00007889.jpg", help="Path to the blurry input image for the generator.")
+    parser.add_argument("--blur_image_path", type=str, default="/kaggle/input/waterloo/WaterlooED/WaterlooED_noisy_15/00001.bmp", help="Path to the blurry input image for the generator.")
     
     args = parser.parse_args()
     
