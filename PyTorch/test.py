@@ -102,7 +102,7 @@ from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 ## options
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, default="/kaggle/input/cbsd68/CBSD68/CBSD_noisy_25")
-parser.add_argument("--gt_dir", type=str, default="/kaggle/input/euvp-dataset/EUVP/test_samples/GTr")  # Add ground truth directory
+parser.add_argument("--gt_dir", type=str, default="/kaggle/input/cbsd68/CBSD68/original_png")  # Add ground truth directory
 parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--model_name", type=str, default="funiegan") # or "ugan"
 parser.add_argument("--model_path", type=str, default="/kaggle/input/denoising/UIE/TrainedModels/00001/scale_factor=0.750000,alpha=10/final_model.pth")
