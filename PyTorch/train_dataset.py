@@ -325,13 +325,25 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 print(f"Scale {scale_num}, Epoch {epoch}/{opt.niter}, Batch {batch_idx}: "
                       f"G_loss: {g_loss.item():.4f}, D_loss: {d_loss.item():.4f}")
         
+            
+            
         # Average losses for epoch
         avg_g_loss = epoch_g_loss / num_batches
         avg_d_loss = epoch_d_loss / num_batches
         print(f"Scale {scale_num}, Epoch {epoch}: Avg G_loss: {avg_g_loss:.4f}, Avg D_loss: {avg_d_loss:.4f}")
         
+        wandb.log({
+                "Scale": scale_num,
+                "Epoch": epoch,
+                "Avg D_loss": avg_d_loss,
+                "Avg G_loss": avg_g_loss,
+                "Adv": g_adv_loss.item(),
+                "L1": g_l1_loss.item(),
+                "VGG": g_vgg_loss.item(),
+            })
+        
         # Save sample images
-        if epoch % opt.sample_freq == 0:
+        if epoch % opt.sample_freq == 0 or epoch == opt.niter-1:
             with torch.no_grad():
                 # Take first batch for sampling
                 for poor_sample, good_sample, _ in train_loader:
@@ -356,9 +368,15 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     fake_sample = generator(enhanced_input)
                     good_sample_scaled = F.interpolate(good_sample, size=(target_h, target_w), mode='bilinear', align_corners=False)
                     
+                    # Log image to wandb
+                    wandb.log({"generated_sample": [wandb.Image(fake_sample, caption=f"Epoch {epoch}")]})
+                    
                     # Save comparison
                     comparison = torch.cat([poor_pyramid_sample[scale_num], fake_sample, good_sample_scaled], dim=0)
                     save_image(comparison, f"{opt.outf}/samples_epoch_{epoch}.png", nrow=4, normalize=True)
+                    
+                    # Log the comparision image too
+                    wandb.log({"Comparison": [wandb.Image(comparison, caption=f"Epoch {epoch} comparison")]})
                     break
     
     return generator, optimizer_G, optimizer_D
@@ -582,6 +600,8 @@ def main():
         print(f"  {key}: {value}")
     print("=" * 60)
     
+    run = wandb.init(project="UIE_FUnIE_SIN_HVI", config=opt)
+    
     if opt.mode == 'train':
         Gs = train_multiscale_dataset(opt)
         print("Training completed successfully!")
@@ -602,6 +622,8 @@ def main():
     else:
         print(f"Unknown mode: {opt.mode}")
         print("Available modes: train, test")
+        
+    run.finish()
 
 if __name__ == '__main__':
     main()
