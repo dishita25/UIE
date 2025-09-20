@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
+import wandb
 
 # Import the modified functions and dataset class
 import functions_dataset as functions
@@ -52,7 +53,7 @@ def get_config():
     parser.add_argument("--lr_g", type=float, default=0.0002, help="Generator learning rate")
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
-    parser.add_argument("--niter", type=int, default=101, help="Number of iterations per scale")
+    parser.add_argument("--niter", type=int, default=1, help="Number of iterations per scale") # Change this
     parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     
@@ -95,6 +96,7 @@ def get_config():
     
     return args
 
+
 def load_checkpoint_for_resume(opt, checkpoint_path):
     """Load checkpoint and return resume information"""
     print(f"Loading checkpoint from: {checkpoint_path}")
@@ -134,16 +136,14 @@ def clean_state_dict(state_dict):
     print(f"Cleaned state dict: removed {len(state_dict) - len(cleaned_state_dict)} THOP keys")
     return cleaned_state_dict
 
-def draw_concat_dataset(Gs, Zs, poor_batch_pyramid, NoiseAmp, mode, opt):
+
+def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
     """
     Draw concatenation following SinGAN architecture for dataset training
     
     Args:
         Gs: List of previously trained generators
-        Zs: List of optimal noise vectors (not used in dataset mode, kept for compatibility)
         poor_batch_pyramid: List of poor quality images at different scales
-        NoiseAmp: List of noise amplification factors
-        mode: 'rand' for random noise, 'rec' for reconstruction
         opt: Configuration options
     
     Returns:
@@ -153,27 +153,23 @@ def draw_concat_dataset(Gs, Zs, poor_batch_pyramid, NoiseAmp, mode, opt):
         # First scale: return the input poor image
         return poor_batch_pyramid[0]
     
-    # Start from the coarsest scale
-    G_z = poor_batch_pyramid[0]  # Use poor image instead of noise
+    # Use poor image as starting point
+    G_z = poor_batch_pyramid[0]
     
-    # Progressive enhancement through scales
-    for scale_idx, (G, noise_amp) in enumerate(zip(Gs, NoiseAmp)):
-        # Get the corresponding poor image at this scale
+
+    for scale_idx, G in enumerate(Gs):
+        # Get the poor image at this scale
         current_poor = poor_batch_pyramid[scale_idx]
         
-        # Generate noise for this scale
-        if mode == 'rand':
-            noise = torch.randn_like(current_poor) * 0.1  # Small noise amplitude
-        else:  # reconstruction mode
-            noise = torch.zeros_like(current_poor)  # No noise for reconstruction
+        # G_prev = Gs[scale_idx-1]
+        # G_z = G_prev(G_z)
         
         # Resize G_z to match current scale if needed
         if G_z.shape[2:] != current_poor.shape[2:]:
             G_z = F.interpolate(G_z, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
         
-        # Combine: enhanced from previous scale + noise + current poor image
-        # This follows SinGAN's additive structure but uses blurry image instead of pure noise
-        z_in = G_z + noise_amp * noise + current_poor * 0.5  # Weight the poor image contribution
+        # Combine: enhanced from previous scale + current poor image
+        z_in = G_z + current_poor                                           # SHOULD WE HAVE WEIGHTED SUMS?  # Correct G_z: its just the blur image from prev scale
         
         # Generate enhanced image at current scale
         G_z = G(z_in)
@@ -185,8 +181,9 @@ def draw_concat_dataset(Gs, Zs, poor_batch_pyramid, NoiseAmp, mode, opt):
     
     return G_z
 
+
 def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, good_batch_pyramid, 
-                              Gs, Zs, NoiseAmp, opt, scale_num, train_loader):
+                              Gs, opt, scale_num, train_loader):
     """
     Train a single scale following SinGAN methodology but adapted for dataset training
     
@@ -196,8 +193,6 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
         poor_batch_pyramid: Poor quality images at different scales
         good_batch_pyramid: Good quality images at different scales
         Gs: Previously trained generators
-        Zs: Optimal noise vectors (kept for compatibility)
-        NoiseAmp: Noise amplification factors
         opt: Configuration options
         scale_num: Current scale number
         train_loader: DataLoader for training data
@@ -216,8 +211,6 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
     l1_loss = nn.L1Loss().to(opt.device)
     vgg_loss = VGG19_PercepLoss().to(opt.device)
     
-    # Calculate noise amplitude for current scale
-    opt.noise_amp = opt.noise_amp_init * (0.8 ** scale_num)  # Decrease noise with scale
     
     for epoch in range(opt.niter):
         epoch_g_loss = 0.0
@@ -254,7 +247,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
             # Fake images - use enhanced image from previous scales + current generator
             if len(Gs) > 0:
                 # Get input from previous scales
-                prev_enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rand', opt)
+                prev_enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
                 # Ensure correct size
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], 
@@ -263,8 +256,8 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 prev_enhanced = current_poor
             
             # Add small amount of noise
-            noise = torch.randn_like(current_poor) * opt.noise_amp
-            z_in = prev_enhanced + noise
+            # noise = torch.randn_like(current_poor) * opt.noise_amp
+            z_in = prev_enhanced #+ noise
             
             fake_batch = generator(z_in.detach())
             fake_pred = discriminator(fake_batch.detach(), current_poor)
@@ -274,11 +267,11 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
             d_loss = 0.5 * (real_loss + fake_loss)
             
             # Add gradient penalty if specified
-            if opt.lambda_grad > 0:
-                grad_penalty = functions.calc_gradient_penalty(
-                    discriminator, current_good, fake_batch, opt.lambda_grad, opt.device
-                )
-                d_loss += grad_penalty
+            # if opt.lambda_grad > 0:
+            #     grad_penalty = functions.calc_gradient_penalty(
+            #         discriminator, current_good, fake_batch, opt.lambda_grad, opt.device
+            #     )
+            #     d_loss += grad_penalty
             
             d_loss.backward()
             optimizer_D.step()
@@ -290,14 +283,14 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
             
             # Generate fake images (same process as above but with gradients)
             if len(Gs) > 0:
-                prev_enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rand', opt)
+                prev_enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
             else:
                 prev_enhanced = current_poor
             
-            noise = torch.randn_like(current_poor) * opt.noise_amp
-            z_in = prev_enhanced + noise                                    # **********NOTE************: Should I be adding noise?!
+            # noise = torch.randn_like(current_poor) * opt.noise_amp
+            z_in = prev_enhanced #+ noise
             fake_batch = generator(z_in)
             
             # Generator losses
@@ -309,7 +302,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
             # Reconstruction loss (SinGAN style)
             if opt.alpha > 0 and len(Gs) > 0:
                 # Reconstruction with fixed input (no noise)
-                z_rec = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rec', opt)
+                z_rec = draw_concat_dataset(Gs, poor_pyramid, opt)
                 if z_rec.shape[2:] != current_poor.shape[2:]:
                     z_rec = F.interpolate(z_rec, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
                     
@@ -353,7 +346,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     
                     # Generate enhanced sample
                     if len(Gs) > 0:
-                        enhanced_input = draw_concat_dataset(Gs, Zs, poor_pyramid_sample, NoiseAmp, 'rec', opt)
+                        enhanced_input = draw_concat_dataset(Gs, poor_pyramid_sample, opt)
                         if enhanced_input.shape[2:] != poor_pyramid_sample[scale_num].shape[2:]:
                             enhanced_input = F.interpolate(enhanced_input, size=poor_pyramid_sample[scale_num].shape[2:], 
                                                           mode='bilinear', align_corners=False)
@@ -400,7 +393,7 @@ def train_multiscale_dataset(opt):
         print(f"Validation samples: {len(val_loader.dataset)}")
     
     # Storage for trained models (SinGAN style)
-    Gs, Zs, NoiseAmp = [], [], []
+    Gs = []
     
     # Handle resume training
     resume_info = None
@@ -437,11 +430,11 @@ def train_multiscale_dataset(opt):
                         prev_generator.eval()
                         Gs.append(prev_generator)
                         
-                        # Add corresponding Z and NoiseAmp (kept for compatibility)
-                        target_h, target_w = HARDCODED_SCALES[prev_scale]
-                        z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
-                        Zs.append(z_opt)
-                        NoiseAmp.append(opt.noise_amp_init * (0.8 ** prev_scale))
+                        # # Add corresponding Z and NoiseAmp (kept for compatibility)
+                        # target_h, target_w = HARDCODED_SCALES[prev_scale]
+                        # z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
+                        # Zs.append(z_opt)
+                        # NoiseAmp.append(opt.noise_amp_init * (0.8 ** prev_scale))
                         
                         print(f"Loaded generator for scale {prev_scale}")
     
@@ -475,9 +468,8 @@ def train_multiscale_dataset(opt):
         
         # Train this scale
         generator, optimizer_G, optimizer_D = train_single_scale_dataset(
-            generator, discriminator, None, None, Gs, Zs, NoiseAmp, 
-            opt, scale_num, train_loader
-        )
+            generator, discriminator, None, None, Gs, opt, scale_num, train_loader)
+
         
         # Set models to evaluation mode (SinGAN style)
         generator.eval()
@@ -489,8 +481,8 @@ def train_multiscale_dataset(opt):
         # Store noise parameters
         target_h, target_w = HARDCODED_SCALES[scale_num]
         z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
-        Zs.append(z_opt)
-        NoiseAmp.append(opt.noise_amp_init * (0.8 ** scale_num))
+        # Zs.append(z_opt)
+        # NoiseAmp.append(opt.noise_amp_init * (0.8 ** scale_num))
         
         # Save checkpoint for this scale
         torch.save({
@@ -501,8 +493,8 @@ def train_multiscale_dataset(opt):
             'epoch': opt.niter - 1,
             'scale': scale_num,
             'Gs': [G.state_dict() for G in Gs],
-            'Zs': Zs,
-            'NoiseAmp': NoiseAmp,
+            # 'Zs': Zs,
+            # 'NoiseAmp': NoiseAmp,
         }, f"{opt.outf}/checkpoint_final.pth")
         
         print(f"Scale {scale_num} completed!")
@@ -511,13 +503,13 @@ def train_multiscale_dataset(opt):
     final_model_path = os.path.join(opt.out, opt.dataset_name, "final_model.pth")
     torch.save({
         'Gs': [G.state_dict() for G in Gs],
-        'Zs': Zs,
-        'NoiseAmp': NoiseAmp,
+        # 'Zs': Zs,
+        # 'NoiseAmp': NoiseAmp,
         'scales': HARDCODED_SCALES,
     }, final_model_path)
     
     print(f"Training completed! Final model saved to {final_model_path}")
-    return Gs, Zs, NoiseAmp
+    return Gs    #, Zs, NoiseAmp
 
 def test_model(opt, model_path):
     """Test the trained model on validation set"""
@@ -544,7 +536,7 @@ def test_model(opt, model_path):
         Gs.append(G)
     
     Zs = checkpoint['Zs']
-    NoiseAmp = checkpoint['NoiseAmp']
+    # NoiseAmp = checkpoint['NoiseAmp']
     scales = checkpoint['scales']
     
     # Test on samples
@@ -566,7 +558,7 @@ def test_model(opt, model_path):
                 poor_pyramid.append(poor_scaled)
             
             # Generate enhanced image using SinGAN-style multi-scale approach
-            enhanced = draw_concat_dataset(Gs, Zs, poor_pyramid, NoiseAmp, 'rec', opt)
+            enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
             
             # Resize to original size for comparison
             enhanced = F.interpolate(enhanced, size=poor_batch.shape[2:], mode='bilinear', align_corners=False)
@@ -591,7 +583,7 @@ def main():
     print("=" * 60)
     
     if opt.mode == 'train':
-        Gs, Zs, NoiseAmp = train_multiscale_dataset(opt)
+        Gs = train_multiscale_dataset(opt)
         print("Training completed successfully!")
         
         # Test the model if validation data is provided
