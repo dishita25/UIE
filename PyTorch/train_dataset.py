@@ -623,7 +623,7 @@ def main():
         print(f"  {key}: {value}")
     print("=" * 60)
     
-    run = wandb.init(project="UIE_FUnIE_SIN_HVI", config=opt)
+    run = wandb.init(project="FUnIE_SIN_Attention", config=opt)
     
     if opt.mode == 'train':
         Gs = train_multiscale_dataset(opt)
