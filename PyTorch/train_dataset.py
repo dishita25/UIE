@@ -381,7 +381,15 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     save_image(comparison, f"{opt.outf}/samples_epoch_{epoch}.png", nrow=4, normalize=True)
                     
                     # Log the comparision image too
-                    wandb.log({"Comparison": [wandb.Image(comparison, caption=f"Epoch {epoch} comparison")]})
+                    from torchvision.utils import make_grid
+
+                    # comparison shape: (12, 3, 64, 64)
+                    grid = make_grid(comparison, nrow=4, normalize=True, scale_each=True)  # (C, H, W)
+
+                    wandb.log({
+                        "Comparison": wandb.Image(grid, caption=f"Epoch {epoch} comparison")
+                    })
+
                     break
     
     return generator, optimizer_G, optimizer_D
