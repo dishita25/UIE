@@ -175,6 +175,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             output = netD(fake)
             #D_fake_map = output.detach()
             errG = -output.mean()
+            torch.autograd.set_detect_anomaly(True)
             errG.backward(retain_graph=True)
             if alpha!=0:
                 loss = nn.MSELoss()
