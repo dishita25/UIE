@@ -112,7 +112,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             output = netD(real).to(opt.device)
             #D_real_map = output.detach()
             errD_real = -output.mean()#-a
-            errD_real.backward()
+            errD_real.backward(retain_graph=True)
             D_x = -errD_real.item()
 
             # train with fake
@@ -155,7 +155,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             fake = netG(noise.detach(),prev)
             output = netD(fake.detach())
             errD_fake = output.mean()
-            errD_fake.backward()
+            errD_fake.backward(retain_graph=True)
             D_G_z = output.mean().item()
 
             gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device)
@@ -176,7 +176,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
             #D_fake_map = output.detach()
             errG = -output.mean()
             torch.autograd.set_detect_anomaly(True)
-            errG.backward()
+            errG.backward(retain_graph=True)
             if alpha!=0:
                 loss = nn.MSELoss()
                 if opt.mode == 'paint_train':
@@ -184,7 +184,7 @@ def train_single_scale(netD,netG,reals,Gs,Zs,in_s,NoiseAmp,opt,centers=None):
                     plt.imsave('%s/z_prev.png' % (opt.outf), functions.convert_image_np(z_prev), vmin=0, vmax=1)
                 Z_opt = opt.noise_amp*z_opt+z_prev
                 rec_loss = alpha*loss(netG(Z_opt.detach(),z_prev),real)
-                rec_loss.backward()
+                rec_loss.backward(retain_graph=True)
                 rec_loss = rec_loss.detach()
             else:
                 Z_opt = z_opt
