@@ -48,8 +48,8 @@ def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
     gen = Gs[0]
     G_z = gen(G_z)  # Output of generator 0
     
-    # Progressive enhancement through remaining scales
-    for scale_idx, G in enumerate(Gs[1:], 1):  # Start from index 1
+    # Process remaining scales (CORRECTED: start from index 1, not 0)
+    for scale_idx, G in enumerate(Gs[1:], 1):  # Start from Gs[1]
         # Get the poor image at this scale
         current_poor = poor_batch_pyramid[scale_idx]
         
@@ -90,6 +90,7 @@ parser.add_argument("--sample_dir", type=str, default="data/output/")
 parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
 parser.add_argument("--model_name", type=str, default="funiegan")
 parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/TrainedModels/EUVP/final_model.pth")
+
 opt = parser.parse_args()
 
 ## checks
@@ -151,6 +152,7 @@ for path in test_files:
         
         enhanced = draw_concat_dataset(generators, poor_pyramid, opt)
         
+        # Resize to target size if needed (final output)
         if enhanced.shape[2:] != (256, 256):
             enhanced = F.interpolate(enhanced, size=(256, 256), 
                                    mode='bilinear', align_corners=False)
@@ -158,7 +160,7 @@ for path in test_files:
         # Final enhanced image
         gen_img = enhanced
     
-    times.append(time.time()-s)
+    times.append(time.time() - s)
     
     # Save outputs
     img_sample = torch.cat((inp_img.data, gen_img.data), -1)

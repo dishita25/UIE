@@ -159,7 +159,7 @@ def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
     G_z = gen(G_z)  #Output of generator 0
     
 
-    for scale_idx, G in enumerate(Gs):
+    for scale_idx, G in enumerate(Gs[1:], 1):  # Start from Gs[1]
         # Get the poor image at this scale
         current_poor = poor_batch_pyramid[scale_idx]
         
@@ -254,9 +254,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 z_in = prev_enhanced + current_poor
             else:
                 z_in = current_poor
-            
-            # *************Look here*****************
-            
+                        
             # Add small amount of noise
             # noise = torch.randn_like(current_poor) * opt.noise_amp
             # z_in = prev_enhanced + noise
@@ -291,9 +289,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 z_in = prev_enhanced + current_poor
             else:
                 z_in = current_poor
-            
-            # *************Look here*****************
-            
+                      
             # noise = torch.randn_like(current_poor) * opt.noise_amp
             # z_in = prev_enhanced + noise
             
@@ -317,8 +313,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
             else:
                 rec_loss = torch.tensor(0.0).to(opt.device)
                 
-            # *************Look here*****************
-            
+                          
             g_loss = g_adv_loss + opt.lambda_l1 * g_l1_loss + opt.lambda_vgg * g_vgg_loss + rec_loss
             
             g_loss.backward()
@@ -371,6 +366,8 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                         if enhanced_input.shape[2:] != poor_pyramid_sample[scale_num].shape[2:]:
                             enhanced_input = F.interpolate(enhanced_input, size=poor_pyramid_sample[scale_num].shape[2:], 
                                                           mode='bilinear', align_corners=False)
+                        enhanced_input = enhanced_input + poor_pyramid_sample[scale_num]
+                        
                     else:
                         enhanced_input = poor_pyramid_sample[scale_num]
                     
@@ -380,7 +377,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     # fake_sample shape: (B, C, H, W)
                     wandb.log({
                         "generated_samples": [
-                            wandb.Image(img, caption=f"Epoch {epoch} | Img {i}")
+                            wandb.Image(img, caption=f"Scale: {scale_num} Epoch: {epoch} | Img: {i}")
                             for i, img in enumerate(fake_sample)
                         ]
                     })
@@ -396,7 +393,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                     grid = make_grid(comparison, nrow=4, normalize=True, scale_each=True)  # (C, H, W)
 
                     wandb.log({
-                        "Comparison": wandb.Image(grid, caption=f"Epoch {epoch} comparison")
+                        "Comparison": wandb.Image(grid, caption=f"Scale: {scale_num} Epoch: {epoch} comparison")
                     })
 
                     break
@@ -470,12 +467,6 @@ def train_multiscale_dataset(opt):
                         prev_generator.eval()
                         Gs.append(prev_generator)
                         
-                        # # Add corresponding Z and NoiseAmp (kept for compatibility)
-                        # target_h, target_w = HARDCODED_SCALES[prev_scale]
-                        # z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
-                        # Zs.append(z_opt)
-                        # NoiseAmp.append(opt.noise_amp_init * (0.8 ** prev_scale))
-                        
                         print(f"Loaded generator for scale {prev_scale}")
     
     # Train at each scale (starting from resume point or beginning)
@@ -518,12 +509,6 @@ def train_multiscale_dataset(opt):
         # Store trained models
         Gs.append(generator)
         
-        # Store noise parameters
-        target_h, target_w = HARDCODED_SCALES[scale_num]
-        z_opt = torch.zeros(1, 3, target_h, target_w, device=opt.device)
-        # Zs.append(z_opt)
-        # NoiseAmp.append(opt.noise_amp_init * (0.8 ** scale_num))
-        
         # Save checkpoint for this scale
         torch.save({
             'generator': generator.state_dict(),
@@ -533,8 +518,6 @@ def train_multiscale_dataset(opt):
             'epoch': opt.niter - 1,
             'scale': scale_num,
             'Gs': [G.state_dict() for G in Gs],
-            # 'Zs': Zs,
-            # 'NoiseAmp': NoiseAmp,
         }, f"{opt.outf}/checkpoint_final.pth")
         
         print(f"Scale {scale_num} completed!")
@@ -543,13 +526,12 @@ def train_multiscale_dataset(opt):
     final_model_path = os.path.join(opt.out, opt.dataset_name, "final_model.pth")
     torch.save({
         'Gs': [G.state_dict() for G in Gs],
-        # 'Zs': Zs,
-        # 'NoiseAmp': NoiseAmp,
         'scales': HARDCODED_SCALES,
     }, final_model_path)
     
     print(f"Training completed! Final model saved to {final_model_path}")
-    return Gs    #, Zs, NoiseAmp
+    return Gs
+
 
 def test_model(opt, model_path):
     """Test the trained model on validation set"""
@@ -575,8 +557,6 @@ def test_model(opt, model_path):
         G.eval()
         Gs.append(G)
     
-    # Zs = checkpoint['Zs']
-    # NoiseAmp = checkpoint['NoiseAmp']
     scales = checkpoint['scales']
     
     # Test on samples
@@ -610,6 +590,7 @@ def test_model(opt, model_path):
             save_image(comparison, f"{output_dir}/{filename}_comparison.png", nrow=1, normalize=True)
     
     print(f"Test results saved to {output_dir}")
+
 
 def main():
     """Main training function"""
