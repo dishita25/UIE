@@ -9,7 +9,7 @@ class ConvBlock(nn.Sequential):
         super(ConvBlock,self).__init__()
         self.add_module('conv',nn.Conv2d(in_channel ,out_channel,kernel_size=ker_size,stride=stride,padding=padd)),
         self.add_module('norm',nn.BatchNorm2d(out_channel)),
-        self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=True))
+        self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=False))
 
 def weights_init(m):
     classname = m.__class__.__name__
