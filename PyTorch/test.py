@@ -14,6 +14,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torchvision.utils import save_image
 import torchvision.transforms as transforms
+import wandb
+from torchvision.utils import make_grid
 
 # Import the GeneratorFunieGAN from your project
 from nets.funiegan import GeneratorFunieGAN
@@ -93,6 +95,8 @@ parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/Train
 
 opt = parser.parse_args()
 
+run = wandb.init(project="FUnIE_SIN_Attention", config=opt)
+
 ## checks
 print(f"Model path: {opt.model_path}")
 assert exists(opt.model_path), f"Model not found at {opt.model_path}"
@@ -166,6 +170,12 @@ for path in test_files:
     img_sample = torch.cat((inp_img.data, gen_img.data), -1)
     save_image(gen_img, join(opt.enhanced_dir, basename(path)), normalize=True)
     save_image(img_sample, join(opt.sample_dir, basename(path)), normalize=True)
+    
+    grid = make_grid(img_sample, nrow=3, normalize=True, scale_each=True)  # (C, H, W)
+
+    wandb.log({
+        "Testing file": wandb.Image(grid, caption=f"{basename(path)}_comparison.png")
+    })
     print(f"Tested: {basename(path)}")
 
 ## run-time statistics
@@ -178,3 +188,5 @@ if len(times) > 1:
     print(f"Saved comparison images in {opt.sample_dir}")
 
 print("\nMulti-scale testing completed!")
+
+run.finish()
