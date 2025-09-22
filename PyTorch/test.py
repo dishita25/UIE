@@ -128,7 +128,7 @@ print(f"Successfully loaded {len(generators)} generators")
 ## data pipeline
 img_width, img_height, channels = 256, 256, 3
 transforms_ = [
-    transforms.Resize((img_height, img_width), Image.BICUBIC),
+    # transforms.Resize((img_height, img_width), Image.BICUBIC),
     transforms.ToTensor(),
 ]
 
