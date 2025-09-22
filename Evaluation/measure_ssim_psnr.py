@@ -10,6 +10,8 @@ from PIL import Image
 from glob import glob
 from os.path import join
 from ntpath import basename
+import wandb
+
 ## local libs
 from imqual_utils import getSSIM, getPSNR
 
@@ -52,6 +54,8 @@ gtr_dir = "/kaggle/input/euvp-dataset/test_samples/GTr"
 gen_dir = "/kaggle/working/UIE/data/enhanced" 
 #gen_dir = "eval_data/ufo_test/deep-sesr/" 
 
+run = wandb.init(project="FUnIE_SIN_Attention")
+
 
 ### compute SSIM and PSNR
 SSIM_measures, PSNR_measures = SSIMs_PSNRs(gtr_dir, gen_dir)
@@ -61,5 +65,12 @@ print ("Mean: {0} std: {1}".format(np.mean(SSIM_measures), np.std(SSIM_measures)
 print ("PSNR on {0} samples".format(len(PSNR_measures)))
 print ("Mean: {0} std: {1}".format(np.mean(PSNR_measures), np.std(PSNR_measures)))
 
+wandb.log({
+                "Mean SSIM": np.mean(SSIM_measures),
+                "SSIM Std": np.std(SSIM_measures),
+                "Mean PSNR": np.mean(PSNR_measures),
+                "PSNR Std": np.std(PSNR_measures),
+            })
 
+run.finish()
 
