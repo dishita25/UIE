@@ -29,7 +29,7 @@ def option():
     parser.add_argument('--data_train_SID'          , type=str, default='./datasets/Sony_total_dark/train')
     parser.add_argument('--data_train_SICE'         , type=str, default='./datasets/SICE/Dataset/train')
     parser.add_argument('--data_train_fivek'        , type=str, default='./datasets/FiveK/train')
-    parser.add_argument('--train_waterloo'          , type=str, default='./kaggle/input/waterloo/WaterlooED')
+    parser.add_argument('--train_waterloo'          , type=str, default='/kaggle/input/waterloo/WaterlooED')
 
     # validation input
     parser.add_argument('--data_val_lol_blur'       , type=str, default='./datasets/LOL_blur/eval/low_blur')
@@ -40,7 +40,7 @@ def option():
     parser.add_argument('--data_val_SICE_mix'       , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_val_SICE_grad'      , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_test_fivek'         , type=str, default='./datasets/FiveK/test/input')
-    parser.add_argument('--data_test_cbsd'          , type=str, default='./kaggle/input/cbsd68/CBSD68/CBSD_noisy_25')
+    parser.add_argument('--data_test_cbsd'          , type=str, default='/kaggle/input/cbsd68/CBSD68/CBSD_noisy_25')
 
     # validation groundtruth
     parser.add_argument('--data_valgt_lol_blur'     , type=str, default='./datasets/LOL_blur/eval/high_sharp_scaled/')
@@ -51,7 +51,7 @@ def option():
     parser.add_argument('--data_valgt_SICE_mix'     , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_SICE_grad'    , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_fivek'        , type=str, default='./datasets/FiveK/test/target/')
-    parser.add_argument('--data_valgt_cbsd'         , type=str, default='./kaggle/input/cbsd68/CBSD68/original_png')
+    parser.add_argument('--data_valgt_cbsd'         , type=str, default='/kaggle/input/cbsd68/CBSD68/original_png')
 
 
     parser.add_argument('--val_folder', default='./results/', help='Location to save validation datasets')
