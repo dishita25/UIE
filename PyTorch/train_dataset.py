@@ -17,7 +17,7 @@ import functions_dataset as functions
 from nets.funiegan import GeneratorFunieGAN, DiscriminatorFunieGAN
 from nets.commons import VGG19_PercepLoss, Weights_Normal
 
-# Hard-coded scales (can be made configurable)
+# Hard-coded scales
 HARDCODED_SCALES = [
     (64, 64),
     (96, 96),
@@ -29,7 +29,7 @@ HARDCODED_SCALES = [
 def get_config():
     parser = argparse.ArgumentParser()
     
-    # Dataset paths (NEW)
+    # Dataset paths
     parser.add_argument("--poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainA")
     parser.add_argument("--good_data_dir", type=str, default="/kaggle/input/euvp-dataset/Paired/underwater_dark/trainB")
     parser.add_argument("--val_poor_data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
@@ -55,7 +55,6 @@ def get_config():
     parser.add_argument("--lr_d", type=float, default=0.0002, help="Discriminator learning rate")
     parser.add_argument("--beta1", type=float, default=0.5, help="Beta1 for Adam optimizer")
     parser.add_argument("--niter", type=int, default=61, help="Number of iterations per scale") # Change this
-    parser.add_argument("--lambda_grad", type=float, default=0.1, help="Gradient penalty lambda")
     parser.add_argument("--alpha", type=float, default=10, help="Reconstruction loss weight")
     parser.add_argument("--poorcontri", type=float, default=0.5, help="Poor input image weight")
     
@@ -79,8 +78,8 @@ def get_config():
     parser.add_argument("--resume", action='store_true', help="Resume training from checkpoint")
     parser.add_argument("--resume_out", type=str, default="/kaggle/input/previous-weights/UIE/TrainedModels", help="Output directory")
     parser.add_argument("--resume_path", type=str, default="/kaggle/input/previous-weights/UIE/TrainedModels/EUVP/scale_4/checkpoint_epoch_0.pth", help="Path to checkpoint to resume from")
-    parser.add_argument("--resume_scale", type=int, default=4, help="Scale to resume from (-1 for auto-detect)")
-    parser.add_argument("--resume_epoch", type=int, default=0, help="Epoch to resume from (-1 for auto-detect)")
+    parser.add_argument("--resume_scale", type=int, default=4, help="Scale to resume from")
+    parser.add_argument("--resume_epoch", type=int, default=0, help="Epoch to resume from")
     
     args = parser.parse_args()
     
@@ -242,7 +241,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], 
                                                 mode='bilinear', align_corners=False)
-                z_in = prev_enhanced + current_poor
+                z_in = prev_enhanced + opt.poorcontri * current_poor
             else:
                 z_in = current_poor
                         
@@ -265,7 +264,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                 prev_enhanced = draw_concat_dataset(Gs, poor_pyramid, opt)
                 if prev_enhanced.shape[2:] != current_poor.shape[2:]:
                     prev_enhanced = F.interpolate(prev_enhanced, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
-                z_in = prev_enhanced + current_poor
+                z_in = prev_enhanced + opt.poorcontri * current_poor
                 rec_loss = opt.alpha * l1_loss(generator(z_in), current_good)
             else:
                 z_in = current_poor
@@ -332,7 +331,7 @@ def train_single_scale_dataset(generator, discriminator, poor_batch_pyramid, goo
                         if enhanced_input.shape[2:] != poor_pyramid_sample[scale_num].shape[2:]:
                             enhanced_input = F.interpolate(enhanced_input, size=poor_pyramid_sample[scale_num].shape[2:], 
                                                           mode='bilinear', align_corners=False)
-                        enhanced_input = enhanced_input + poor_pyramid_sample[scale_num]
+                        enhanced_input = enhanced_input + opt.poorcontri * poor_pyramid_sample[scale_num]
                         
                     else:
                         enhanced_input = poor_pyramid_sample[scale_num]

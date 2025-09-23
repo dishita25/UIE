@@ -20,6 +20,19 @@ from torchvision.utils import make_grid
 # Import the GeneratorFunieGAN from your project
 from nets.funiegan import GeneratorFunieGAN
 
+
+## options
+parser = argparse.ArgumentParser()
+parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
+parser.add_argument("--sample_dir", type=str, default="data/output/")
+parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
+parser.add_argument("--model_name", type=str, default="funiegan")
+parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/TrainedModels/EUVP/final_model.pth")
+parser.add_argument("--poorcontri", type=float, default=0.5, help="Poor input image weight")
+
+opt = parser.parse_args()
+
+
 def clean_state_dict(state_dict):
     """Remove THOP-added keys from state dict"""
     cleaned_state_dict = {}
@@ -29,53 +42,46 @@ def clean_state_dict(state_dict):
     return cleaned_state_dict
 
 def draw_concat_dataset(Gs, poor_batch_pyramid, opt):
-    """
-    Draw concatenation following SinGAN architecture for dataset training
-    Same as training but for testing/inference
-    
+    """  
     Args:
         Gs: List of previously trained generators
         poor_batch_pyramid: List of poor quality images at different scales
         opt: Configuration options
-    
     Returns:
         Enhanced image at the current finest scale
     """
     if len(Gs) == 0:
-        # First scale: return the input poor image
         return poor_batch_pyramid[0]
     
-    # Start from the coarsest scale using the first generator
-    G_z = poor_batch_pyramid[0]  # Use poor image as starting point
+    G_out = poor_batch_pyramid[0]     # Use poor image as starting point
     gen = Gs[0]
-    G_z = gen(G_z)  # Output of generator 0
+    G_out = gen(G_out)  #Output of generator 0
     
-    # Process remaining scales (CORRECTED: start from index 1, not 0)
+
     for scale_idx, G in enumerate(Gs[1:], 1):  # Start from Gs[1]
         # Get the poor image at this scale
         current_poor = poor_batch_pyramid[scale_idx]
         
-        # Resize G_z to match current scale if needed
-        if G_z.shape[2:] != current_poor.shape[2:]:
-            G_z = F.interpolate(G_z, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
+        # Resize G_out to match current scale if needed
+        if G_out.shape[2:] != current_poor.shape[2:]:
+            G_out = F.interpolate(G_out, size=current_poor.shape[2:], mode='bilinear', align_corners=False)
         
         # Combine: enhanced from previous scale + current poor image
-        z_in = G_z + current_poor
+        z_in = G_out + opt.poorcontri * current_poor
         
         # Generate enhanced image at current scale
-        G_z = G(z_in)
-    
-    return G_z
+        G_out = G(z_in)
+            
+    return G_out
+
 
 def create_pyramid(image, scales, device):
-    """
-    Create multi-scale pyramid from input image
-    
+    """  
     Args:
         image: Input tensor of shape (B, C, H, W)
         scales: List of (height, width) tuples for different scales
         device: Device to create tensors on
-    
+
     Returns:
         List of tensors at different scales
     """
@@ -85,15 +91,6 @@ def create_pyramid(image, scales, device):
         pyramid.append(scaled_img)
     return pyramid
 
-## options
-parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/kaggle/input/euvp-dataset/test_samples/Inp")
-parser.add_argument("--sample_dir", type=str, default="data/output/")
-parser.add_argument("--enhanced_dir", type=str, default="data/enhanced/")
-parser.add_argument("--model_name", type=str, default="funiegan")
-parser.add_argument("--model_path", type=str, default="/kaggle/working/UIE/TrainedModels/EUVP/final_model.pth")
-
-opt = parser.parse_args()
 
 run = wandb.init(project="FUnIE_SIN_Attention", config=opt)
 
