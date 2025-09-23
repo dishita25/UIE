@@ -45,7 +45,7 @@ def train(epoch):
     iter = 0
     torch.autograd.set_detect_anomaly(opt.grad_detect)
     for batch in tqdm(training_data_loader):
-        im1, im2, path1, path2 = batch[0], batch[1], batch[2], batch[3]
+        im1, im2 = batch[0], batch[1]
         im1 = im1.cuda()
         im2 = im2.cuda()
         
