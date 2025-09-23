@@ -16,6 +16,7 @@ eval_parser.add_argument('--lol_v2_syn', action='store_true', help='output lol_v
 eval_parser.add_argument('--SICE_grad', action='store_true', help='output SICE_grad dataset')
 eval_parser.add_argument('--SICE_mix', action='store_true', help='output SICE_mix dataset')
 eval_parser.add_argument('--fivek', action='store_true', help='output FiveK dataset')
+eval_parser.add_argument('--cbsd', action='store_true', help='output CBSD dataset')
 
 eval_parser.add_argument('--best_GT_mean', action='store_true', help='output lol_v2_real dataset best_GT_mean')
 eval_parser.add_argument('--best_PSNR', action='store_true', help='output lol_v2_real dataset best_PSNR')
@@ -137,6 +138,12 @@ if __name__ == '__main__':
         weight_path = './weights/fivek.pth'
         norm_size = False
     
+    elif ep.cbsd:
+        eval_data = DataLoader(dataset=get_cbsd_eval_set("/CBSD_noisy_25"), num_workers=num_workers, batch_size=1, shuffle=False)
+        output_folder = './output/cbsd'
+        weight_path = './weights/cbsd.pth'
+        norm_size = False 
+
     elif ep.unpaired: 
         if ep.DICM:
             eval_data = DataLoader(dataset=get_SICE_eval_set("./datasets/DICM"), num_workers=num_workers, batch_size=1, shuffle=False)

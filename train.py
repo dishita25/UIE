@@ -263,6 +263,11 @@ if __name__ == '__main__':
                 label_dir = opt.data_valgt_fivek
                 norm_size = False
 
+            if opt.waterloo:
+                output_folder = 'CBSD/'
+                label_dir = opt.data_valgt_cbsd
+                norm_size = False 
+
             im_dir = opt.val_folder + output_folder + '*.png'
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
                  norm_size=norm_size, LOL=opt.lol_v1, v2=opt.lolv2_real, alpha=0.8)
