@@ -29,6 +29,7 @@ def option():
     parser.add_argument('--data_train_SID'          , type=str, default='./datasets/Sony_total_dark/train')
     parser.add_argument('--data_train_SICE'         , type=str, default='./datasets/SICE/Dataset/train')
     parser.add_argument('--data_train_fivek'        , type=str, default='./datasets/FiveK/train')
+    parser.add_argument('--train_waterloo'          , type=str, default='./kaggle/input/waterloo/WaterlooED')
 
     # validation input
     parser.add_argument('--data_val_lol_blur'       , type=str, default='./datasets/LOL_blur/eval/low_blur')
@@ -39,6 +40,7 @@ def option():
     parser.add_argument('--data_val_SICE_mix'       , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_val_SICE_grad'      , type=str, default='./datasets/SICE/Dataset/eval/test')
     parser.add_argument('--data_test_fivek'         , type=str, default='./datasets/FiveK/test/input')
+    parser.add_argument('--data_test_cbsd'          , type=str, default='./kaggle/input/cbsd68/CBSD68/CBSD_noisy_25')
 
     # validation groundtruth
     parser.add_argument('--data_valgt_lol_blur'     , type=str, default='./datasets/LOL_blur/eval/high_sharp_scaled/')
@@ -49,6 +51,8 @@ def option():
     parser.add_argument('--data_valgt_SICE_mix'     , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_SICE_grad'    , type=str, default='./datasets/SICE/Dataset/eval/target/')
     parser.add_argument('--data_valgt_fivek'        , type=str, default='./datasets/FiveK/test/target/')
+    parser.add_argument('--data_valgt_cbsd'         , type=str, default='./kaggle/input/cbsd68/CBSD68/original_png')
+
 
     parser.add_argument('--val_folder', default='./results/', help='Location to save validation datasets')
 
@@ -70,7 +74,7 @@ def option():
     
     
     # choose which dataset you want to train, please only set one "True"
-    parser.add_argument('--lol_v1', type=bool, default=True)
+    parser.add_argument('--lol_v1', type=bool, default=False)
     parser.add_argument('--lolv2_real', type=bool, default=False)
     parser.add_argument('--lolv2_syn', type=bool, default=False)
     parser.add_argument('--lol_blur', type=bool, default=False)
@@ -78,4 +82,6 @@ def option():
     parser.add_argument('--SICE_mix', type=bool, default=False)
     parser.add_argument('--SICE_grad', type=bool, default=False)
     parser.add_argument('--fivek', type=bool, default=False)
+    parser.add_argument('--waterloo', type=bool, default=True)
+
     return parser
