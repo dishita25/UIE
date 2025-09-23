@@ -54,7 +54,7 @@ def get_fivek_eval_set(data_dir):
     return SICEDatasetFromFolderEval(data_dir, transform=transform2())
 
 def get_waterloo_training_set(data_dir, size):
-    return Waterloo(data_dir, transform=transform2())
+    return Waterloo(data_dir)
 
 def get_cbsd_eval_set(data_dir):
-    return CBSD68Dataset(data_dir, transform=transform2())
+    return CBSD68Dataset(data_dir)
