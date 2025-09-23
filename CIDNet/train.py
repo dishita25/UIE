@@ -53,6 +53,10 @@ def train(epoch):
         im1 = im1.cuda()
         im2 = im2.cuda()
         
+        ############### Darken the images ##################
+        gamma_dark = 1.5  # Values >1 will darken
+        im1_darkened = torch.pow(im1, gamma_dark)
+        
         # use random gamma function (enhancement curve) to improve generalization
         if opt.gamma:
             gamma = random.randint(opt.start_gamma,opt.end_gamma) / 100.0
