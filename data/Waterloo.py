@@ -8,6 +8,7 @@ from os.path import join
 from data.util import *
 from torchvision import transforms as t
 import matplotlib.pyplot as plt
+from torchvision import datasets, transforms
 
 
 class BaseDenoisingDataset(Dataset):
