@@ -9,9 +9,10 @@ from data.util import *
 from torchvision import transforms as t
 import matplotlib.pyplot as plt
 from torchvision import datasets, transforms
+from torch.utils.data import Dataset
 
 
-class BaseDenoisingDataset(Dataset):
+class BaseDenoisingDataset(data.Dataset):
     def __init__(self, clean_dir, noisy_dir, noise_level=25, crop_size=256,
                  normalize=True, augmentation=None):
         self.clean_dir = clean_dir
