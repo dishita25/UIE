@@ -272,7 +272,7 @@ if __name__ == '__main__':
                 print("Inside waterloo")
                 output_folder = '/CBSD/'
                 label_dir = opt.data_valgt_cbsd
-                norm_size = False 
+                norm_size = True 
 
             im_dir = opt.val_folder + output_folder + '*.png'
             eval(model, testing_data_loader, model_out_path, opt.val_folder+output_folder, 
