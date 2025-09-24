@@ -228,7 +228,7 @@ if __name__ == '__main__':
         if epoch % opt.snapshots == 0:
             model_out_path = checkpoint(epoch) 
             norm_size = True
-
+            print(opt.waterloo)
             # LOL three subsets
             if opt.lol_v1:
                 output_folder = 'LOLv1/'
@@ -264,6 +264,7 @@ if __name__ == '__main__':
                 norm_size = False
 
             if opt.waterloo:
+                print("Inside waterloo")
                 output_folder = '/CBSD/'
                 label_dir = opt.data_valgt_cbsd
                 norm_size = False 
