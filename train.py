@@ -264,7 +264,7 @@ if __name__ == '__main__':
                 norm_size = False
 
             if opt.waterloo:
-                output_folder = 'CBSD/'
+                output_folder = '/CBSD/'
                 label_dir = opt.data_valgt_cbsd
                 norm_size = False 
 
