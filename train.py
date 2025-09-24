@@ -220,12 +220,17 @@ if __name__ == '__main__':
         start_epoch = opt.start_epoch
     if not os.path.exists(opt.val_folder):          
         os.mkdir(opt.val_folder) 
+
+    print("Before eval loop")
         
     for epoch in range(start_epoch+1, opt.nEpochs + start_epoch + 1):
+        print("Inside eval loop")
         epoch_loss, pic_num = train(epoch)
         scheduler.step()
         
+        print(epoch, opt.snapshots)
         if epoch % opt.snapshots == 0:
+
             model_out_path = checkpoint(epoch) 
             norm_size = True
             print(opt.waterloo)
