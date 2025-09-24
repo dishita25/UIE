@@ -27,8 +27,8 @@ class BaseDenoisingDataset(data.Dataset):
         ]
 
     def __len__(self):
-        # return 64
-        return len(self.image_filenames)
+        return 16
+        #return len(self.image_filenames)
 
     def _load_and_crop(self, clean_path, noisy_path):
         clean_image = np.array(Image.open(clean_path).convert("RGB")).astype(np.float32)
