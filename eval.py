@@ -142,7 +142,7 @@ if __name__ == '__main__':
         eval_data = DataLoader(dataset=get_cbsd_eval_set("/CBSD_noisy_25"), num_workers=num_workers, batch_size=1, shuffle=False)
         output_folder = './output/cbsd'
         weight_path = './weights/cbsd.pth'
-        norm_size = True 
+        norm_size = False 
 
     elif ep.unpaired: 
         if ep.DICM:
